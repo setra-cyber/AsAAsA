@@ -1,25 +1,40 @@
-// Firebase App
+// ======================================
+// ASA - CONFIGURATION FIREBASE
+// ======================================
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
 
-// Firebase Authentication
-import { getAuth } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
+import { 
+  getAuth 
+} from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
 
-// Cloud Firestore
-import { getFirestore } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
+import { 
+  getFirestore 
+} from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
-// Configuration Firebase
+// ======================================
+// CONFIGURATION DU PROJET
+// ======================================
+
 const firebaseConfig = {
-  apiKey: "AIzaSyDuZC7UZTA4--5RZz-oW5DAL_391skUy6Q",
-  authDomain: "asa-nao.firebaseapp.com",
-  projectId: "asa-nao",
-  storageBucket: "asa-nao.firebasestorage.app",
-  messagingSenderId: "217582794284",
-  appId: "1:217582794284:web:8a75a89dc1f6e9ee0f0389"
+  apiKey: "AIzaSyAG6n0TGCz_oHrU8wSw0pqoyb3reIYSjnU",
+  authDomain: "asaasa-612ca.firebaseapp.com",
+  projectId: "asaasa-612ca",
+  storageBucket: "asaasa-612ca.firebasestorage.app",
+  messagingSenderId: "533696167891",
+  appId: "1:533696167891:web:8cbe6e8d8b921cd867b926"
 };
 
-// Initialisation
+// ======================================
+// INITIALISATION
+// ======================================
+
 const app = initializeApp(firebaseConfig);
 
-// Services Firebase
+// Authentification
 export const auth = getAuth(app);
+
+// Base de données
 export const db = getFirestore(app);
+
+console.log("Firebase connecté avec succès !");

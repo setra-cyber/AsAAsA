@@ -608,6 +608,7 @@ document.getElementById("closePeriod").addEventListener("click", () => {
 // ======================================
 
 
+
 function renderHistory() {
   const history = document.getElementById("periodHistory");
   history.innerHTML = "";
@@ -708,6 +709,7 @@ function renderHistory() {
     history.appendChild(item);
   });
 }
+
 
 
 // Initialiser la page 005

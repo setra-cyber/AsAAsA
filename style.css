@@ -619,7 +619,48 @@ body {
 
 
 
+/* MENU DÉROULANT AsA */
 
+.menu-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.menu-dropdown {
+  position: absolute;
+  top: 35px;
+  right: 0;
+  z-index: 1000;
+  width: 155px;
+  padding: 7px;
+  border: 1px solid var(--yellow);
+  border-radius: 10px;
+  background: var(--navy);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.menu-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 11px 9px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--yellow);
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.menu-dropdown button:hover {
+  background: var(--blue);
+}
+
+.menu-dropdown .menu-logout {
+  color: #ff8585;
+  border-top: 1px solid rgba(214, 201, 0, 0.3);
+}
 
 
 

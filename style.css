@@ -589,3 +589,30 @@ body {
 .delete-period-button:hover {
     background: #b02a37;
 }
+
+
+
+/* TABLEAU RECAPITULATIF HISTORIQUE */
+
+.history-summary {
+  width: 100%;
+  margin: 12px 0;
+  border-collapse: collapse;
+  color: white;
+  font-size: 12px;
+}
+
+.history-summary td {
+  padding: 10px 7px;
+  border: 1px solid rgba(101, 212, 208, 0.5);
+}
+
+.history-summary td:first-child {
+  font-weight: bold;
+}
+
+.history-summary td:last-child {
+  color: var(--yellow);
+  font-weight: bold;
+  text-align: right;
+}

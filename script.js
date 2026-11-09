@@ -1,3 +1,4 @@
+
 // ======================================
 // ASA - FIREBASE + GESTION DU TRAVAIL
 // ======================================
@@ -7,7 +8,6 @@ import { auth, db } from "./firebase.js";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signOut,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
 
@@ -29,6 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let splashFinished = false;
   let authReady = false;
+  let registrationInProgress = false;
 
   const pages = {
     page001: document.getElementById("page001"),
@@ -41,6 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const STORAGE_KEY = "asaWorkPeriods";
 
   function showPage(pageId) {
+
     Object.values(pages).forEach(page => {
       if (page) page.classList.add("hidden");
     });
@@ -48,9 +50,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (pages[pageId]) {
       pages[pageId].classList.remove("hidden");
     }
+
   }
 
   function showInitialPage() {
+
     if (!splashFinished || !authReady) return;
 
     if (currentUser) {
@@ -58,7 +62,9 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       showPage("page002");
     }
+
   }
+
 
   // ======================================
   // PAGE 001 : LOGO PENDANT 3 SECONDES
@@ -67,8 +73,10 @@ document.addEventListener("DOMContentLoaded", () => {
   showPage("page001");
 
   setTimeout(() => {
+
     splashFinished = true;
     showInitialPage();
+
   }, 3000);
 
 
@@ -108,6 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     return messages[error.code] ||
       "Une erreur est survenue. Veuillez réessayer.";
+
   }
 
 
@@ -123,6 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("registerMessage").textContent = "";
 
       showPage("page003");
+
     });
 
   document.getElementById("backToLogin")
@@ -133,6 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("loginMessage").textContent = "";
 
       showPage("page002");
+
     });
 
 
@@ -157,40 +168,58 @@ document.addEventListener("DOMContentLoaded", () => {
     registerMessage.textContent = "";
 
     if (!name || !email || !birth || !password || !confirmPassword) {
+
       registerMessage.textContent =
         "Veuillez remplir tous les champs.";
+
       return;
+
     }
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailPattern.test(email)) {
+
       registerMessage.textContent =
         "Veuillez saisir une adresse e-mail valide.";
+
       return;
+
     }
 
     if (password !== confirmPassword) {
+
       registerMessage.textContent =
         "Les deux mots de passe ne correspondent pas.";
+
       return;
+
     }
 
     if (password.length < 6) {
+
       registerMessage.textContent =
         "Le mot de passe doit contenir au moins 6 caractères.";
+
       return;
+
     }
 
     const birthDate = new Date(birth + "T00:00:00");
 
     if (isNaN(birthDate.getTime()) || birthDate > new Date()) {
+
       registerMessage.textContent =
         "Veuillez vérifier votre date de naissance.";
+
       return;
+
     }
 
     try {
+
+      // Empêcher le chargement du profil avant sa création
+      registrationInProgress = true;
 
       registerMessage.textContent = "Création du compte...";
 
@@ -218,21 +247,32 @@ document.addEventListener("DOMContentLoaded", () => {
         profile
       );
 
-      // Déconnexion après inscription
-      await signOut(auth);
+      // Garder l'utilisateur connecté après l'inscription
+      currentUser = user;
+      currentProfile = profile;
+
+      // Charger les données de cet utilisateur
+      loadPeriods();
+
+      // Afficher le profil
+      displayProfile(currentProfile);
 
       registerForm.reset();
 
       registerMessage.textContent = "";
 
-      document.getElementById("loginMessage").textContent =
-        "Compte créé avec succès ! Vous pouvez maintenant vous connecter.";
+      // Autoriser l'affichage de la page 004
+      authReady = true;
+      registrationInProgress = false;
 
-      showPage("page002");
+      showInitialPage();
 
     } catch (error) {
 
-      registerMessage.textContent = firebaseErrorMessage(error);
+      registrationInProgress = false;
+
+      registerMessage.textContent =
+        firebaseErrorMessage(error);
 
     }
 
@@ -256,9 +296,12 @@ document.addEventListener("DOMContentLoaded", () => {
     loginMessage.textContent = "";
 
     if (!email || !password) {
+
       loginMessage.textContent =
         "Veuillez remplir tous les champs.";
+
       return;
+
     }
 
     try {
@@ -275,7 +318,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     } catch (error) {
 
-      loginMessage.textContent = firebaseErrorMessage(error);
+      loginMessage.textContent =
+        firebaseErrorMessage(error);
 
     }
 
@@ -287,6 +331,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======================================
 
   onAuthStateChanged(auth, async user => {
+
+    // Ne pas charger le profil pendant l'inscription
+    if (registrationInProgress) return;
 
     currentUser = user;
 
@@ -300,12 +347,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!profileSnapshot.exists()) {
 
-          await signOut(auth);
+          currentProfile = null;
+          authReady = true;
 
           loginMessage.textContent =
             "Profil introuvable. Veuillez contacter l'administrateur.";
 
+          showPage("page002");
+
           return;
+
         }
 
         currentProfile = profileSnapshot.data();
@@ -379,15 +430,17 @@ document.addEventListener("DOMContentLoaded", () => {
   function loadPeriods() {
 
     if (!currentUser) {
+
       periods = [];
       return;
+
     }
 
     const userKey = getStorageKey();
 
     let saved = localStorage.getItem(userKey);
 
-    // Récupérer les anciennes périodes lors de la première connexion
+    // Récupérer les anciennes périodes
     if (saved === null) {
 
       const oldPeriods = localStorage.getItem(STORAGE_KEY);
@@ -413,6 +466,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
 
       console.error("Historique invalide :", error);
+
       periods = [];
 
     }
@@ -459,6 +513,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "Veuillez choisir une image.";
 
       return;
+
     }
 
     const reader = new FileReader();
@@ -499,7 +554,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
 
-          photoMessage.textContent = "Enregistrement de la photo...";
+          photoMessage.textContent =
+            "Enregistrement de la photo...";
 
           const updatedProfile = {
             ...currentProfile,
@@ -672,6 +728,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!startDate || !dailyHours) {
 
       alert("Veuillez remplir les deux informations.");
+
       return;
 
     }
@@ -679,6 +736,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (getActivePeriod()) {
 
       alert("Une période est déjà en cours.");
+
       return;
 
     }

@@ -1252,3 +1252,41 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/ bouton supre kely rehefa vita test
+// ======================================
+// RÉINITIALISER LES DONNÉES DE TEST
+// ======================================
+
+document.getElementById("resetTestData")
+  .addEventListener("click", () => {
+
+    const confirmation = confirm(
+      "Attention ! Toutes les données de test " +
+      "seront supprimées. Voulez-vous continuer ?"
+    );
+
+    if (!confirmation) return;
+
+    localStorage.removeItem("asaProfile");
+    localStorage.removeItem("asaWorkPeriods");
+
+    alert("Les données de test ont été supprimées.");
+
+    location.reload();
+  });
+

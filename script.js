@@ -641,6 +641,42 @@ function renderHistory() {
     status.className = "history-status";
     status.textContent = "Période fermée";
 
+    // CALCUL DES TOTAUX
+    let totalWorked = 0;
+    let totalDifference = 0;
+
+    period.rows.forEach(row => {
+      const result = calculateRow(row, period.dailyHours);
+
+      if (result.worked !== null) {
+        totalWorked += result.worked;
+        totalDifference += result.difference;
+      }
+    });
+
+    // TABLEAU RECAPITULATIF
+    const summaryTable = document.createElement("table");
+    summaryTable.className = "history-summary";
+
+    const rows = [
+      ["TOTAL HEURE", minutesToTime(totalWorked)],
+      ["TOTAL HEURE SUPPLÉMENTAIRE", minutesToTime(totalDifference)]
+    ];
+
+    rows.forEach(data => {
+      const tr = document.createElement("tr");
+
+      const label = document.createElement("td");
+      label.textContent = data[0];
+
+      const value = document.createElement("td");
+      value.textContent = data[1];
+
+      tr.append(label, value);
+      summaryTable.appendChild(tr);
+    });
+
+    // TELECHARGER
     const downloadButton = document.createElement("button");
     downloadButton.className = "blue-button";
     downloadButton.type = "button";
@@ -650,7 +686,7 @@ function renderHistory() {
       downloadPeriod(period);
     });
 
-    // Bouton supprimer
+    // SUPPRIMER
     const deleteButton = document.createElement("button");
     deleteButton.className = "delete-period-button";
     deleteButton.type = "button";
@@ -664,6 +700,7 @@ function renderHistory() {
       title,
       hours,
       status,
+      summaryTable,
       downloadButton,
       deleteButton
     );

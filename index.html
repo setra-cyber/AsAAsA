@@ -1,0 +1,240 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#142238">
+  <title>AsA</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- PAGE 001 : ACCUEIL -->
+  <section id="page001" class="page splash">
+    <div class="main-logo">
+      <div class="logo-symbol">
+        <svg viewBox="0 0 200 160" role="img" aria-label="Logo AsA">
+          <path d="M15 115 L48 35 Q55 17 66 43 L105 120 Q116 145 128 115 L163 35"
+                fill="none" stroke="currentColor" stroke-width="19"
+                stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M55 82 H137" fill="none" stroke="currentColor"
+                stroke-width="18" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="brand-name">AsA</div>
+    </div>
+  </section>
+
+  <!-- PAGE 002 : CONNEXION -->
+  <section id="page002" class="page hidden">
+    <main class="login-content">
+      <div class="mini-logo">
+        <svg viewBox="0 0 200 160" aria-label="AsA">
+          <path d="M15 115 L48 35 Q55 17 66 43 L105 120 Q116 145 128 115 L163 35"
+                fill="none" stroke="currentColor" stroke-width="19"
+                stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M55 82 H137" fill="none" stroke="currentColor"
+                stroke-width="18" stroke-linecap="round"/>
+        </svg>
+      </div>
+
+      <form id="loginForm" class="login-form">
+        <input id="loginContact" type="text"
+               placeholder="e-mail ou numéro de téléphone" required>
+
+        <input id="loginPassword" type="password"
+               placeholder="mot de passe" required>
+
+        <button class="blue-button" type="submit">Entrer</button>
+      </form>
+
+      <a href="#" id="openRegister" class="register-link">
+        Inscrivez-vous gratuitement
+      </a>
+
+      <p id="loginMessage" class="message"></p>
+    </main>
+  </section>
+
+  <!-- PAGE 003 : INSCRIPTION -->
+  <section id="page003" class="page hidden">
+    <header class="topbar">
+      <div class="tiny-logo">
+        <svg viewBox="0 0 200 160" aria-label="AsA">
+          <path d="M15 115 L48 35 Q55 17 66 43 L105 120 Q116 145 128 115 L163 35"
+                fill="none" stroke="currentColor" stroke-width="19"
+                stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M55 82 H137" fill="none" stroke="currentColor"
+                stroke-width="18" stroke-linecap="round"/>
+        </svg>
+      </div>
+
+      <div class="search-box">
+        <input type="search" placeholder="recherche">
+        <span class="search-icon">⌕</span>
+      </div>
+
+      <button class="icon-button" type="button" aria-label="Profil">♙</button>
+      <button class="icon-button menu-button" type="button" aria-label="Menu">☰</button>
+    </header>
+
+    <main class="register-content">
+      <form id="registerForm">
+        <input id="fullName" type="text"
+               placeholder="Nom et prénom" required>
+
+        <input id="registerContact" type="text"
+               placeholder="E-mail ou numéro de téléphone" required>
+
+        <input id="birthDate" type="date"
+               aria-label="Date de naissance" required>
+
+        <input id="registerPassword" type="password"
+               placeholder="Mot de passe" minlength="6" required>
+
+        <input id="confirmPassword" type="password"
+               placeholder="Confirmation mot de passe" minlength="6" required>
+
+        <button class="blue-button register-button" type="submit">
+          Inscription
+        </button>
+      </form>
+
+      <p id="registerMessage" class="message"></p>
+      <a href="#" id="backToLogin" class="back-link">Retour à la connexion</a>
+    </main>
+  </section>
+
+  <!-- PAGE 004 : PROFIL -->
+  <section id="page004" class="page hidden">
+    <header class="topbar profile-topbar">
+      <div class="tiny-logo">
+        <svg viewBox="0 0 200 160" aria-label="AsA">
+          <path d="M15 115 L48 35 Q55 17 66 43 L105 120 Q116 145 128 115 L163 35"
+                fill="none" stroke="currentColor" stroke-width="19"
+                stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M55 82 H137" fill="none" stroke="currentColor"
+                stroke-width="18" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <button class="icon-button menu-button" type="button" aria-label="Menu">☰</button>
+    </header>
+
+    <main class="profile-content">
+      <h1>Bienvenue</h1>
+      <h2 id="welcomeName">"Nom et prénom"</h2>
+
+      <input id="photoInput" type="file" accept="image/*" hidden>
+
+      <button id="choosePhoto" class="photo-circle" type="button">
+        <img id="profilePhoto" alt="Votre photo">
+        <span id="photoPlaceholder">votre<br>photo</span>
+      </button>
+
+      <p id="photoMessage" class="photo-message">
+        Appuyez sur la photo pour la modifier
+      </p>
+
+      <button id="enterApp" class="blue-button enter-button" type="button">
+        Entrer
+      </button>
+
+      <p id="profileMessage" class="message"></p>
+    </main>
+  </section>
+
+  <!-- PAGE 005 : CALCUL DU TEMPS DE TRAVAIL -->
+<section id="page005" class="page hidden">
+
+  <header class="topbar">
+    <div class="tiny-logo">
+      <svg viewBox="0 0 200 160" aria-label="AsA">
+        <path d="M15 115 L48 35 Q55 17 66 43 L105 120 Q116 145 128 115 L163 35"
+          fill="none" stroke="currentColor" stroke-width="19"
+          stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M55 82 H137" fill="none" stroke="currentColor"
+          stroke-width="18" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <span class="page-title">Gestion du travail</span>
+    <button id="backProfile" class="icon-button" type="button">←</button>
+  </header>
+
+  <main class="work-content">
+
+    <!-- NOUVELLE PERIODE -->
+    <section id="newPeriodForm" class="period-card">
+      <h2>Nouvelle période</h2>
+
+      <label for="periodStart">Début du mois</label>
+      <input type="date" id="periodStart" required>
+
+      <label for="dailyHours">Heure journalière</label>
+      <input type="time" id="dailyHours" value="08:00" required>
+
+      <button id="startPeriod" class="blue-button" type="button">
+        Commencer la période
+      </button>
+    </section>
+
+    <!-- PERIODE EN COURS -->
+    <section id="activePeriod" class="period-card hidden">
+      <h2>Ma période de travail</h2>
+
+      <div class="period-details">
+        <p>Début : <strong id="periodStartDisplay"></strong></p>
+        <p>Heure journalière : <strong id="dailyHoursDisplay"></strong></p>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="workTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>H. début</th>
+              <th>H. fin</th>
+              <th>H/J</th>
+              <th>Écart</th>
+            </tr>
+          </thead>
+          <tbody id="workTableBody"></tbody>
+        </table>
+      </div>
+
+      <button id="addWorkLine" class="blue-button" type="button">
+        + Ajouter une ligne
+      </button>
+
+      <div class="period-total">
+        <p>Total des heures : <strong id="totalHours">00:00</strong></p>
+        <p>Total des écarts : <strong id="totalDifference">00:00</strong></p>
+      </div>
+
+      <button id="downloadReport" class="blue-button" type="button">
+        Télécharger le rapport
+      </button>
+
+      <button id="closePeriod" class="close-button" type="button">
+        Fermeture du compte
+      </button>
+    </section>
+
+    <!-- HISTORIQUE -->
+    <section class="period-card history-card">
+      <h2>Historique des périodes</h2>
+      <div class="history-actions">
+        <button id="deleteAllHistory" class="delete-all-button">
+            Supprimer tout l'historique
+        </button>
+      </div>
+
+<div id="periodHistory"></div>
+    </section>
+
+  </main>
+</section>
+
+  <script src="script.js"></script>
+</body>
+</html>

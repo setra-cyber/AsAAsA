@@ -118,7 +118,15 @@
                 stroke-width="18" stroke-linecap="round"/>
         </svg>
       </div>
-      <button class="icon-button menu-button" type="button" aria-label="Menu">☰</button>
+      <div class="menu-container">
+  <button class="icon-button menu-button" type="button"
+          aria-label="Menu" aria-expanded="false">☰</button>
+
+  <div class="menu-dropdown hidden">
+    <button class="menu-profile" type="button">Profil</button>
+    <button class="menu-logout" type="button">Déconnexion</button>
+  </div>
+</div>
     </header>
 
     <main class="profile-content">

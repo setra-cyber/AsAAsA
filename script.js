@@ -627,15 +627,66 @@ document.addEventListener("DOMContentLoaded", () => {
   // ICÔNES DU MENU
   // ======================================
 
-  document.querySelectorAll(".menu-button").forEach(button => {
+  // ======================================
+// MENU PROFIL ET DECONNEXION
+// ======================================
 
-    button.addEventListener("click", () => {
+document.querySelectorAll(".menu-container").forEach(container => {
 
-      alert("Le menu sera configuré dans une prochaine étape.");
+  const menuButton = container.querySelector(".menu-button");
+  const menuDropdown = container.querySelector(".menu-dropdown");
 
-    });
+  menuButton.addEventListener("click", () => {
+
+    const isOpen = !menuDropdown.classList.contains("hidden");
+
+    menuDropdown.classList.toggle("hidden");
+
+    menuButton.setAttribute("aria-expanded", String(!isOpen));
 
   });
+
+  // BOUTON PROFIL
+  container.querySelector(".menu-profile").addEventListener("click", () => {
+
+    menuDropdown.classList.add("hidden");
+    menuButton.setAttribute("aria-expanded", "false");
+
+    showPage("page004");
+
+  });
+
+  // BOUTON DECONNEXION
+  container.querySelector(".menu-logout").addEventListener("click", async () => {
+
+    const confirmation = confirm("Voulez-vous vraiment vous déconnecter ?");
+
+    if (!confirmation) return;
+
+    try {
+
+      await signOut(auth);
+
+      currentUser = null;
+      currentProfile = null;
+      periods = [];
+
+      menuDropdown.classList.add("hidden");
+      menuButton.setAttribute("aria-expanded", "false");
+
+      showPage("page002");
+
+    } catch (error) {
+
+      console.error("Erreur de déconnexion :", error);
+
+      alert("Impossible de se déconnecter. Veuillez réessayer.");
+
+    }
+
+  });
+
+});
 
 
   // ======================================

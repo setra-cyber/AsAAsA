@@ -616,3 +616,39 @@ body {
   font-weight: bold;
   text-align: right;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.reset-test-container {
+  text-align: center;
+  margin: 25px 0;
+}
+
+#resetTestData {
+  background: transparent;
+  color: #888;
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+#resetTestData:hover {
+  background: #f5f5f5;
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+

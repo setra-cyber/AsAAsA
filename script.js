@@ -1642,4 +1642,48 @@ document.getElementById("startPeriod").addEventListener("click", () => {
 });
 
 
+
+
+
+
+
+
+
+// ======================================
+// RÉINITIALISER LES DONNÉES DE TEST
+// ======================================
+
+const resetTestButton = document.getElementById("resetTestData");
+
+if (resetTestButton) {
+
+  resetTestButton.addEventListener("click", () => {
+
+    const confirmation = confirm(
+      "Attention ! Toutes les périodes et données de travail " +
+      "enregistrées sur cet appareil seront supprimées. " +
+      "Voulez-vous continuer ?"
+    );
+
+    if (!confirmation) return;
+
+    // Supprimer les anciennes données
+    localStorage.removeItem(STORAGE_KEY);
+
+    // Supprimer les données enregistrées par utilisateur
+    Object.keys(localStorage).forEach(key => {
+
+      if (key.startsWith(STORAGE_KEY + "_")) {
+        localStorage.removeItem(key);
+      }
+
+    });
+
+    alert("Toutes les données de test ont été supprimées.");
+
+    location.reload();
+
+  });
+
+}
     

@@ -416,6 +416,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 
+
   // ======================================
   // STOCKAGE DES PERIODES PAR UTILISATEUR
   // ======================================
@@ -628,65 +629,65 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======================================
 
   // ======================================
-// MENU PROFIL ET DECONNEXION
-// ======================================
+  // MENU PROFIL ET DECONNEXION
+  // ======================================
 
-document.querySelectorAll(".menu-container").forEach(container => {
+  document.querySelectorAll(".menu-container").forEach(container => {
 
-  const menuButton = container.querySelector(".menu-button");
-  const menuDropdown = container.querySelector(".menu-dropdown");
+    const menuButton = container.querySelector(".menu-button");
+    const menuDropdown = container.querySelector(".menu-dropdown");
 
-  menuButton.addEventListener("click", () => {
+    menuButton.addEventListener("click", () => {
 
-    const isOpen = !menuDropdown.classList.contains("hidden");
+      const isOpen = !menuDropdown.classList.contains("hidden");
 
-    menuDropdown.classList.toggle("hidden");
+      menuDropdown.classList.toggle("hidden");
 
-    menuButton.setAttribute("aria-expanded", String(!isOpen));
+      menuButton.setAttribute("aria-expanded", String(!isOpen));
 
-  });
+    });
 
-  // BOUTON PROFIL
-  container.querySelector(".menu-profile").addEventListener("click", () => {
-
-    menuDropdown.classList.add("hidden");
-    menuButton.setAttribute("aria-expanded", "false");
-
-    showPage("page004");
-
-  });
-
-  // BOUTON DECONNEXION
-  container.querySelector(".menu-logout").addEventListener("click", async () => {
-
-    const confirmation = confirm("Voulez-vous vraiment vous déconnecter ?");
-
-    if (!confirmation) return;
-
-    try {
-
-      await signOut(auth);
-
-      currentUser = null;
-      currentProfile = null;
-      periods = [];
+    // BOUTON PROFIL
+    container.querySelector(".menu-profile").addEventListener("click", () => {
 
       menuDropdown.classList.add("hidden");
       menuButton.setAttribute("aria-expanded", "false");
 
-      showPage("page002");
+      showPage("page004");
 
-    } catch (error) {
+    });
 
-      console.error("Erreur de déconnexion :", error);
+    // BOUTON DECONNEXION
+    container.querySelector(".menu-logout").addEventListener("click", async () => {
 
-      alert("Impossible de se déconnecter. Veuillez réessayer.");
+      const confirmation = confirm("Voulez-vous vraiment vous déconnecter ?");
 
-    }
+      if (!confirmation) return;
+
+      try {
+
+        await signOut(auth);
+
+        currentUser = null;
+        currentProfile = null;
+        periods = [];
+
+        menuDropdown.classList.add("hidden");
+        menuButton.setAttribute("aria-expanded", "false");
+
+        showPage("page002");
+
+      } catch (error) {
+
+        console.error("Erreur de déconnexion :", error);
+
+        alert("Impossible de se déconnecter. Veuillez réessayer.");
+
+      }
+
+    });
 
   });
-
-});
 
 
   // ======================================
@@ -719,13 +720,120 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
   }
 
+
   function timeToMinutes(time) {
 
     if (!time) return null;
 
     const [hours, minutes] = time.split(":").map(Number);
 
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes) ||
+        hours < 0 || minutes < 0 || minutes > 59) return null;
+
     return hours * 60 + minutes;
+
+  }
+
+
+  // ======================================
+  // LECTURE DES HEURES MENSUELLES
+  // ======================================
+
+  function parseMonthlyHours(value) {
+
+    const match = String(value || "").trim().match(/^(\d{1,3}):(\d{2})$/);
+
+    if (!match || Number(match[2]) > 59) return null;
+
+    return Number(match[1]) * 60 + Number(match[2]);
+
+  }
+
+
+  // ======================================
+  // FORMATAGE DU SALAIRE
+  // ======================================
+
+  function formatAr(value) {
+
+    return new Intl.NumberFormat("fr-FR", {
+      maximumFractionDigits: 2
+    }).format(Number(value) || 0) + " Ar";
+
+  }
+
+
+  // ======================================
+  // CALCUL DES TOTAUX DE LA PERIODE
+  // ======================================
+
+  function calculatePeriodTotals(period) {
+
+    let totalWorked = 0;
+    let totalDifference = 0;
+
+    (period.rows || []).forEach(row => {
+
+      const result = calculateRow(row, period.dailyHours);
+
+      if (result.worked !== null) {
+
+        totalWorked += result.worked;
+        totalDifference += result.difference;
+
+      }
+
+    });
+
+    return { totalWorked, totalDifference };
+
+  }
+
+
+  // ======================================
+  // CALCUL DU SALAIRE BRUT
+  // ======================================
+
+  function calculateSalary(period) {
+
+    const totals = calculatePeriodTotals(period);
+
+    const monthlyMinutes = Number(
+      period.monthlyHoursMinutes ??
+      parseMonthlyHours(period.monthlyHours)
+    );
+
+    const baseSalary = Number(period.baseSalary);
+
+    if (!Number.isFinite(monthlyMinutes) || monthlyMinutes <= 0 ||
+        !Number.isFinite(baseSalary) || baseSalary <= 0) return null;
+
+    const normalMinutes = Math.min(
+      totals.totalWorked,
+      monthlyMinutes
+    );
+
+    const overtimeMinutes = Math.max(
+      0,
+      totals.totalWorked - monthlyMinutes
+    );
+
+    const hourlyRate = baseSalary / (monthlyMinutes / 60);
+
+    const overtimeAmount =
+      (overtimeMinutes / 60) * hourlyRate * 1.30;
+
+    const grossSalary = baseSalary + overtimeAmount;
+
+    return {
+      totalWorkedMinutes: totals.totalWorked,
+      normalMinutes,
+      overtimeMinutes,
+      hourlyRate,
+      overtimeAmount,
+      grossSalary,
+      majoration: 30
+    };
 
   }
 
@@ -746,6 +854,9 @@ document.querySelectorAll(".menu-container").forEach(container => {
     document.getElementById("activePeriod")
       .classList.toggle("hidden", !active);
 
+    document.getElementById("salarySummary")
+      .classList.add("hidden");
+
     if (active) {
 
       document.getElementById("periodStartDisplay").textContent =
@@ -753,6 +864,12 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
       document.getElementById("dailyHoursDisplay").textContent =
         active.dailyHours;
+
+      document.getElementById("monthlyHoursDisplay").textContent =
+        active.monthlyHours || "Non renseigné";
+
+      document.getElementById("baseSalaryDisplay").textContent =
+        active.baseSalary ? formatAr(active.baseSalary) : "Non renseigné";
 
       renderWorkTable(active);
 
@@ -771,15 +888,38 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
     if (!currentUser) return;
 
-    const startDate =
-      document.getElementById("periodStart").value;
+    const startDate = document.getElementById("periodStart").value;
+    const dailyHours = document.getElementById("dailyHours").value;
+    const monthlyHours =
+      document.getElementById("monthlyHours").value.trim();
 
-    const dailyHours =
-      document.getElementById("dailyHours").value;
+    const monthlyHoursMinutes =
+      parseMonthlyHours(monthlyHours);
 
-    if (!startDate || !dailyHours) {
+    const baseSalary =
+      Number(document.getElementById("baseSalary").value);
 
-      alert("Veuillez remplir les deux informations.");
+    if (!startDate || !dailyHours || !monthlyHours || !baseSalary) {
+
+      alert("Veuillez remplir toutes les informations.");
+
+      return;
+
+    }
+
+    if (monthlyHoursMinutes === null || monthlyHoursMinutes <= 0) {
+
+      alert(
+        "Veuillez saisir les heures mensuelles au format HH:MM. Exemple : 173:20."
+      );
+
+      return;
+
+    }
+
+    if (!Number.isFinite(baseSalary) || baseSalary <= 0) {
+
+      alert("Veuillez saisir un salaire de base supérieur à 0.");
 
       return;
 
@@ -795,11 +935,15 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
     const period = {
       id: Date.now(),
-      startDate: startDate,
-      dailyHours: dailyHours,
+      startDate,
+      dailyHours,
+      monthlyHours,
+      monthlyHoursMinutes,
+      baseSalary,
       rows: [],
       closed: false,
-      endDate: null
+      endDate: null,
+      salary: null
     };
 
     periods.push(period);
@@ -812,7 +956,7 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
 
   // ======================================
-  // AJOUTER UNE LIGNE
+  // AJOUTER UNE LIGNE DE TRAVAIL
   // ======================================
 
   document.getElementById("addWorkLine").addEventListener("click", () => {
@@ -856,6 +1000,19 @@ document.querySelectorAll(".menu-container").forEach(container => {
   });
 
 
+
+
+
+
+
+
+
+
+
+  
+
+  
+
   // ======================================
   // CALCUL DES HEURES ET DES ECARTS
   // ======================================
@@ -881,7 +1038,6 @@ document.querySelectorAll(".menu-container").forEach(container => {
     }
 
     const worked = end - start;
-
     const expected = timeToMinutes(dailyHours);
 
     return {
@@ -893,7 +1049,7 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
 
   // ======================================
-  // AFFICHER LE TABLEAU
+  // AFFICHER LE TABLEAU DES HEURES
   // ======================================
 
   function renderWorkTable(period) {
@@ -918,13 +1074,14 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
       const tr = document.createElement("tr");
 
+      // DATE
       const dateCell = document.createElement("td");
 
       dateCell.className = "table-date";
       dateCell.textContent = formatDate(row.date);
 
+      // HEURE DEBUT
       const startCell = document.createElement("td");
-
       const startInput = document.createElement("input");
 
       startInput.type = "time";
@@ -943,8 +1100,8 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
       startCell.appendChild(startInput);
 
+      // HEURE FIN
       const endCell = document.createElement("td");
-
       const endInput = document.createElement("input");
 
       endInput.type = "time";
@@ -963,6 +1120,7 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
       endCell.appendChild(endInput);
 
+      // HEURES JOURNALIERES
       const workedCell = document.createElement("td");
 
       workedCell.textContent =
@@ -970,6 +1128,7 @@ document.querySelectorAll(".menu-container").forEach(container => {
           ? "--:--"
           : minutesToTime(result.worked);
 
+      // ECART
       const differenceCell = document.createElement("td");
 
       differenceCell.textContent =
@@ -998,6 +1157,8 @@ document.querySelectorAll(".menu-container").forEach(container => {
   }
 
 
+
+
   // ======================================
   // TELECHARGER UN RAPPORT CSV
   // ======================================
@@ -1022,9 +1183,27 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
     });
 
+    const salary = period.salary || calculateSalary(period);
+
+    if (salary) {
+
+      lines.push([]);
+      lines.push(["RÉCAPITULATIF DU SALAIRE"]);
+      lines.push(["Salaire de base", period.baseSalary]);
+      lines.push(["Heures mensuelles", period.monthlyHours]);
+      lines.push(["Total heures travaillées", minutesToTime(salary.totalWorkedMinutes)]);
+      lines.push(["Heures normales", minutesToTime(salary.normalMinutes)]);
+      lines.push(["Heures supplémentaires", minutesToTime(salary.overtimeMinutes)]);
+      lines.push(["Taux horaire", salary.hourlyRate.toFixed(2)]);
+      lines.push(["Majoration heures supplémentaires", "30 %"]);
+      lines.push(["Montant heures supplémentaires", salary.overtimeAmount.toFixed(2)]);
+      lines.push(["SALAIRE BRUT", salary.grossSalary.toFixed(2)]);
+
+    }
+
     const csv = lines.map(line =>
       line.map(value =>
-        `"${String(value).replace(/"/g, '""')}"`
+        `"${String(value ?? "").replace(/"/g, '""')}"`
       ).join(";")
     ).join("\n");
 
@@ -1034,13 +1213,14 @@ document.querySelectorAll(".menu-container").forEach(container => {
     );
 
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
 
     link.href = url;
     link.download = `AsA-rapport-${period.startDate}.csv`;
 
+    document.body.appendChild(link);
     link.click();
+    link.remove();
 
     URL.revokeObjectURL(url);
 
@@ -1056,7 +1236,34 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
 
   // ======================================
-  // FERMETURE DE LA PERIODE
+  // AFFICHER LE RECAPITULATIF DU SALAIRE
+  // ======================================
+
+  function displaySalarySummary(period, salary) {
+
+    document.getElementById("summaryBaseSalary").textContent =
+      formatAr(period.baseSalary);
+
+    document.getElementById("summaryNormalHours").textContent =
+      minutesToTime(salary.normalMinutes);
+
+    document.getElementById("summaryOvertimeHours").textContent =
+      minutesToTime(salary.overtimeMinutes);
+
+    document.getElementById("summaryHourlyRate").textContent =
+      formatAr(salary.hourlyRate);
+
+    document.getElementById("summaryOvertimeAmount").textContent =
+      formatAr(salary.overtimeAmount);
+
+    document.getElementById("summaryGrossSalary").textContent =
+      formatAr(salary.grossSalary);
+
+  }
+
+
+  // ======================================
+  // FERMETURE : CALCULER AVANT CONFIRMATION
   // ======================================
 
   document.getElementById("closePeriod").addEventListener("click", () => {
@@ -1064,6 +1271,14 @@ document.querySelectorAll(".menu-container").forEach(container => {
     const active = getActivePeriod();
 
     if (!active) return;
+
+    if (active.rows.length === 0) {
+
+      alert("Veuillez ajouter au moins une ligne de travail.");
+
+      return;
+
+    }
 
     const incomplete = active.rows.some(
       row => !row.start || !row.end
@@ -1077,32 +1292,74 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
     }
 
-    const confirmation = confirm(
-      "Voulez-vous vraiment fermer cette période ? " +
-      "Les heures ne pourront plus être modifiées."
-    );
+    const salary = calculateSalary(active);
 
-    if (!confirmation) return;
+    if (!salary) {
 
-    active.closed = true;
+      alert("Les informations du salaire sont incomplètes. Vérifiez les heures mensuelles et le salaire de base.");
 
-    if (active.rows.length > 0) {
-
-      active.endDate = active.rows[active.rows.length - 1].date;
-
-    } else {
-
-      active.endDate = active.startDate;
+      return;
 
     }
 
+    displaySalarySummary(active, salary);
+
+    document.getElementById("activePeriod").classList.add("hidden");
+
+    document.getElementById("salarySummary").classList.remove("hidden");
+
+  });
+
+
+  // ======================================
+  // ANNULER LA FERMETURE
+  // ======================================
+
+  document.getElementById("cancelClosePeriod").addEventListener("click", () => {
+
+    document.getElementById("salarySummary").classList.add("hidden");
+
+    document.getElementById("activePeriod").classList.remove("hidden");
+
+  });
+
+
+  // ======================================
+  // CONFIRMER LA FERMETURE
+  // ======================================
+
+  document.getElementById("confirmClosePeriod").addEventListener("click", () => {
+
+    const active = getActivePeriod();
+
+    if (!active) return;
+
+    const salary = calculateSalary(active);
+
+    if (!salary) {
+
+      alert("Impossible de calculer le salaire. Vérifiez les informations.");
+
+      return;
+
+    }
+
+    active.salary = salary;
+    active.closed = true;
+
+    active.endDate = active.rows[active.rows.length - 1].date;
+
     savePeriods();
+
+    document.getElementById("salarySummary").classList.add("hidden");
 
     initializeWorkPage();
 
-    alert("Période fermée. Vous pouvez commencer une nouvelle période.");
+    alert("Période fermée avec succès. Vous pouvez commencer une nouvelle période.");
 
   });
+
+
 
 
   // ======================================
@@ -1115,7 +1372,9 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
     history.innerHTML = "";
 
-    const closedPeriods = periods.filter(period => period.closed);
+    const closedPeriods = periods
+      .filter(period => period.closed)
+      .sort((a, b) => b.id - a.id);
 
     if (closedPeriods.length === 0) {
 
@@ -1132,8 +1391,8 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
       item.className = "history-item";
 
+      // TITRE
       const title = document.createElement("p");
-
       const strong = document.createElement("strong");
 
       strong.textContent =
@@ -1142,54 +1401,64 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
       title.appendChild(strong);
 
-      const hours = document.createElement("p");
+      // PARAMETRES DE LA PERIODE
+      const daily = document.createElement("p");
 
-      hours.textContent =
+      daily.textContent =
         "Heure journalière : " + period.dailyHours;
 
+      const monthly = document.createElement("p");
+
+      monthly.textContent =
+        "Heures mensuelles : " + (period.monthlyHours || "--:--");
+
+      const base = document.createElement("p");
+
+      base.textContent =
+        "Salaire de base : " + formatAr(period.baseSalary || 0);
+
+      // STATUT
       const status = document.createElement("p");
 
       status.className = "history-status";
-
       status.textContent = "Période fermée";
 
-      // Calcul des totaux
-      let totalWorked = 0;
-      let totalDifference = 0;
+      // TOTAUX
+      const totals = calculatePeriodTotals(period);
 
-      period.rows.forEach(row => {
-
-        const result = calculateRow(row, period.dailyHours);
-
-        if (result.worked !== null) {
-
-          totalWorked += result.worked;
-          totalDifference += result.difference;
-
-        }
-
-      });
-
-      // Tableau récapitulatif
       const summaryTable = document.createElement("table");
 
       summaryTable.className = "history-summary";
 
-      const rows = [
-        ["TOTAL HEURE", minutesToTime(totalWorked)],
-        ["TOTAL HEURE SUPPLÉMENTAIRE", minutesToTime(totalDifference)]
+      const summaryRows = [
+        ["TOTAL HEURE", minutesToTime(totals.totalWorked)],
+        ["TOTAL ÉCART", minutesToTime(totals.totalDifference)]
       ];
 
-      rows.forEach(data => {
+      // RECAPITULATIF DU SALAIRE
+      const salary = period.salary;
+
+      if (salary) {
+
+        summaryRows.push(
+          ["HEURES NORMALES", minutesToTime(salary.normalMinutes)],
+          ["HEURES SUPPLÉMENTAIRES", minutesToTime(salary.overtimeMinutes)],
+          ["TAUX HORAIRE", formatAr(salary.hourlyRate)],
+          ["MAJORATION", "+30 %"],
+          ["MONTANT HEURES SUPPLÉMENTAIRES", formatAr(salary.overtimeAmount)],
+          ["SALAIRE BRUT", formatAr(salary.grossSalary)]
+        );
+
+      }
+
+      summaryRows.forEach(data => {
 
         const tr = document.createElement("tr");
 
         const label = document.createElement("td");
-
         label.textContent = data[0];
 
         const value = document.createElement("td");
-
         value.textContent = data[1];
 
         tr.append(label, value);
@@ -1198,7 +1467,7 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
       });
 
-      // Télécharger
+      // TELECHARGER LE RAPPORT
       const downloadButton = document.createElement("button");
 
       downloadButton.className = "blue-button";
@@ -1211,7 +1480,7 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
       });
 
-      // Supprimer
+      // SUPPRIMER LA PERIODE
       const deleteButton = document.createElement("button");
 
       deleteButton.className = "delete-period-button";
@@ -1226,7 +1495,9 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
       item.append(
         title,
-        hours,
+        daily,
+        monthly,
+        base,
         status,
         summaryTable,
         downloadButton,
@@ -1290,7 +1561,7 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
       if (!confirmation) return;
 
-      // Tsy fafana ny période mbola mandeha
+      // Garder la période encore en cours
       periods = periods.filter(
         period => !period.closed
       );
@@ -1303,19 +1574,12 @@ document.querySelectorAll(".menu-container").forEach(container => {
 
     });
 
+
+  // ======================================
+  // FIN DU SCRIPT ASA
+  // ======================================
+
 });
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+    

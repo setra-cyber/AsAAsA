@@ -842,117 +842,177 @@ document.addEventListener("DOMContentLoaded", () => {
   // INITIALISER LA PAGE 005
   // ======================================
 
-  function initializeWorkPage() {
 
-    if (!currentUser) return;
+function initializeWorkPage() {
 
-    const active = getActivePeriod();
+  if (!currentUser) return;
 
-    document.getElementById("newPeriodForm")
-      .classList.toggle("hidden", !!active);
+  const active = getActivePeriod();
 
-    document.getElementById("activePeriod")
-      .classList.toggle("hidden", !active);
+  const newPeriodForm = document.getElementById("newPeriodForm");
+  const activePeriod = document.getElementById("activePeriod");
 
-    document.getElementById("salarySummary")
-      .classList.add("hidden");
+  const needsSalaryInfo = active && (
+    !active.monthlyHoursMinutes ||
+    !active.baseSalary
+  );
 
-    if (active) {
+  newPeriodForm.classList.toggle(
+    "hidden",
+    !!active && !needsSalaryInfo
+  );
 
-      document.getElementById("periodStartDisplay").textContent =
-        formatDate(active.startDate);
+  activePeriod.classList.toggle("hidden", !active);
 
-      document.getElementById("dailyHoursDisplay").textContent =
-        active.dailyHours;
+  document.getElementById("salarySummary")
+    .classList.add("hidden");
 
-      document.getElementById("monthlyHoursDisplay").textContent =
-        active.monthlyHours || "Non renseigné";
+  const periodStartInput = document.getElementById("periodStart");
+  const dailyHoursInput = document.getElementById("dailyHours");
+  const monthlyHoursInput = document.getElementById("monthlyHours");
+  const baseSalaryInput = document.getElementById("baseSalary");
+  const startButton = document.getElementById("startPeriod");
 
-      document.getElementById("baseSalaryDisplay").textContent =
-        active.baseSalary ? formatAr(active.baseSalary) : "Non renseigné";
+  if (active) {
 
-      renderWorkTable(active);
+    periodStartInput.value = active.startDate;
+    dailyHoursInput.value = active.dailyHours;
 
-    }
+    periodStartInput.disabled = true;
+    dailyHoursInput.disabled = true;
 
-    renderHistory();
+    monthlyHoursInput.value = active.monthlyHours || "";
+    baseSalaryInput.value = active.baseSalary || "";
+
+    startButton.textContent = "Enregistrer les informations";
+
+    document.getElementById("periodStartDisplay").textContent =
+      formatDate(active.startDate);
+
+    document.getElementById("dailyHoursDisplay").textContent =
+      active.dailyHours;
+
+    document.getElementById("monthlyHoursDisplay").textContent =
+      active.monthlyHours || "Non renseigné";
+
+    document.getElementById("baseSalaryDisplay").textContent =
+      active.baseSalary ? formatAr(active.baseSalary) : "Non renseigné";
+
+    renderWorkTable(active);
+
+  } else {
+
+    periodStartInput.disabled = false;
+    dailyHoursInput.disabled = false;
+
+    startButton.textContent = "Commencer la période";
 
   }
+
+  renderHistory();
+
+}
+
 
 
   // ======================================
   // COMMENCER UNE NOUVELLE PERIODE
   // ======================================
 
-  document.getElementById("startPeriod").addEventListener("click", () => {
 
-    if (!currentUser) return;
+document.getElementById("startPeriod").addEventListener("click", () => {
 
-    const startDate = document.getElementById("periodStart").value;
-    const dailyHours = document.getElementById("dailyHours").value;
-    const monthlyHours =
-      document.getElementById("monthlyHours").value.trim();
+  if (!currentUser) return;
 
-    const monthlyHoursMinutes =
-      parseMonthlyHours(monthlyHours);
+  const active = getActivePeriod();
 
-    const baseSalary =
-      Number(document.getElementById("baseSalary").value);
+  const monthlyHours =
+    document.getElementById("monthlyHours").value.trim();
 
-    if (!startDate || !dailyHours || !monthlyHours || !baseSalary) {
+  const monthlyHoursMinutes =
+    parseMonthlyHours(monthlyHours);
 
-      alert("Veuillez remplir toutes les informations.");
+  const baseSalary =
+    Number(document.getElementById("baseSalary").value);
 
-      return;
+  if (!monthlyHours || !baseSalary) {
 
-    }
+    alert("Veuillez remplir toutes les informations.");
 
-    if (monthlyHoursMinutes === null || monthlyHoursMinutes <= 0) {
+    return;
 
-      alert(
-        "Veuillez saisir les heures mensuelles au format HH:MM. Exemple : 173:20."
-      );
+  }
 
-      return;
+  if (monthlyHoursMinutes === null || monthlyHoursMinutes <= 0) {
 
-    }
+    alert("Format invalide. Exemple : 173:20");
 
-    if (!Number.isFinite(baseSalary) || baseSalary <= 0) {
+    return;
 
-      alert("Veuillez saisir un salaire de base supérieur à 0.");
+  }
 
-      return;
+  if (!Number.isFinite(baseSalary) || baseSalary <= 0) {
 
-    }
+    alert("Veuillez saisir un salaire de base valide.");
 
-    if (getActivePeriod()) {
+    return;
 
-      alert("Une période est déjà en cours.");
+  }
 
-      return;
+  // Raha efa misy période dia manampy ny vaovao tsy ampy
+  if (active) {
 
-    }
-
-    const period = {
-      id: Date.now(),
-      startDate,
-      dailyHours,
-      monthlyHours,
-      monthlyHoursMinutes,
-      baseSalary,
-      rows: [],
-      closed: false,
-      endDate: null,
-      salary: null
-    };
-
-    periods.push(period);
+    active.monthlyHours = monthlyHours;
+    active.monthlyHoursMinutes = monthlyHoursMinutes;
+    active.baseSalary = baseSalary;
 
     savePeriods();
 
     initializeWorkPage();
 
-  });
+    alert("Informations enregistrées avec succès.");
+
+    return;
+
+  }
+
+  // Raha mbola tsy misy période dia mamorona vaovao
+  const startDate =
+    document.getElementById("periodStart").value;
+
+  const dailyHours =
+    document.getElementById("dailyHours").value;
+
+  if (!startDate || !dailyHours) {
+
+    alert("Veuillez remplir toutes les informations.");
+
+    return;
+
+  }
+
+  const period = {
+
+    id: Date.now(),
+    startDate,
+    dailyHours,
+    monthlyHours,
+    monthlyHoursMinutes,
+    baseSalary,
+    rows: [],
+    closed: false,
+    endDate: null,
+    salary: null
+
+  };
+
+  periods.push(period);
+
+  savePeriods();
+
+  initializeWorkPage();
+
+});
 
 
   // ======================================

@@ -384,8 +384,9 @@ body {
 }
 
 
+
 /* ==================================
-   PAGE 005 : TEMPS DE TRAVAIL
+   PAGE 005 : GESTION DU TRAVAIL
 ================================== */
 
 #page005 {
@@ -394,21 +395,25 @@ body {
   padding-bottom: 35px;
 }
 
-.page-title {
+#page005 .page-title {
   flex: 1;
   font-size: 14px;
   font-weight: bold;
   color: var(--yellow);
 }
 
-.work-content {
+#page005 .work-content {
   width: 100%;
-  max-width: 650px;
+  max-width: 700px;
   margin: 20px auto;
   padding: 0 14px;
 }
 
-.period-card {
+/* ==================================
+   CARTES
+================================== */
+
+#page005 .period-card {
   padding: 18px;
   margin-bottom: 20px;
   border: 1px solid rgba(214, 201, 0, 0.5);
@@ -416,89 +421,148 @@ body {
   background: rgba(20, 34, 56, 0.75);
 }
 
-.period-card h2 {
+#page005 .period-card h2 {
   color: var(--yellow);
   font-size: 17px;
   text-align: center;
   margin-bottom: 20px;
 }
 
-.period-card label {
+#page005 .work-section-title {
+  color: var(--turquoise);
+  font-size: 15px;
+  margin: 20px 0 12px;
+  text-align: center;
+}
+
+/* ==================================
+   FORMULAIRES
+================================== */
+
+#page005 .period-card label {
   display: block;
   margin: 15px 0 7px;
   color: #e4e4e4;
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.period-card input {
+#page005 .period-card input,
+#page005 .period-card select {
+  display: block;
   width: 100%;
-  height: 42px;
-  padding: 8px;
-  border: 1px solid #65d4d0;
+  height: 43px;
+  padding: 8px 10px;
+  border: 1px solid var(--turquoise);
   border-radius: 8px;
   background: #edf3f5;
-  color: #142238;
+  color: var(--navy);
+  font-size: 14px;
+  outline: none;
 }
 
-.period-details {
+#page005 .period-card input:focus,
+#page005 .period-card select:focus {
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 2px rgba(214, 201, 0, 0.15);
+}
+
+/* ==================================
+   DETAILS DE LA PERIODE
+================================== */
+
+#page005 .period-details {
   color: #e9eeee;
   font-size: 13px;
   line-height: 2;
   margin-bottom: 15px;
+  padding: 12px;
+  border-radius: 9px;
+  background: rgba(41, 79, 125, 0.35);
 }
 
-.period-details strong {
+#page005 .period-details p {
+  margin: 3px 0;
+}
+
+#page005 .period-details strong {
   color: var(--yellow);
 }
 
-.table-wrapper {
+/* ==================================
+   TABLEAU JOURNALIER
+================================== */
+
+#page005 .table-wrapper {
   width: 100%;
   overflow-x: auto;
+  border-radius: 8px;
 }
 
-#workTable {
+#page005 #workTable {
   width: 100%;
-  min-width: 480px;
+  min-width: 540px;
   border-collapse: collapse;
   color: white;
   font-size: 12px;
 }
 
-#workTable th,
-#workTable td {
+#page005 #workTable th,
+#page005 #workTable td {
   padding: 9px 5px;
   text-align: center;
   border: 1px solid rgba(101, 212, 208, 0.5);
 }
 
-#workTable th {
-  background: #294f7d;
+#page005 #workTable th {
+  background: var(--blue);
   color: white;
-}
-
-#workTable td input {
-  min-width: 75px;
-  height: 32px;
-  padding: 4px;
-  font-size: 12px;
-  border-radius: 5px;
-}
-
-.table-date {
+  font-weight: bold;
   white-space: nowrap;
 }
 
-.period-total {
-  padding: 14px 0;
-  color: white;
-  font-size: 14px;
-  line-height: 2;
+#page005 #workTable td {
+  background: rgba(20, 34, 56, 0.5);
 }
 
-.period-total strong {
+#page005 #workTable td input {
+  min-width: 75px;
+  height: 34px;
+  padding: 4px;
+  font-size: 12px;
+  border-radius: 5px;
+  text-align: center;
+}
+
+#page005 .table-date {
+  white-space: nowrap;
   color: var(--yellow);
 }
 
-.close-button {
+/* ==================================
+   BOUTONS
+================================== */
+
+#page005 .blue-button {
+  display: block;
+  width: 100%;
+  margin-top: 15px;
+  padding: 12px;
+  border: 1px solid var(--turquoise);
+  border-radius: 25px;
+  background: var(--blue);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#page005 .blue-button:hover {
+  background: #35669e;
+}
+
+#page005 .close-button {
+  display: block;
   width: 100%;
   margin-top: 15px;
   padding: 13px;
@@ -510,7 +574,97 @@ body {
   cursor: pointer;
 }
 
-.history-item {
+#page005 .close-button:hover {
+  background: #8c4655;
+}
+
+/* ==================================
+   TABLEAU RECAPITULATIF
+================================== */
+
+#page005 .summary-card {
+  margin-top: 25px;
+  padding: 15px;
+  border: 1px solid rgba(101, 212, 208, 0.45);
+  border-radius: 12px;
+  background: rgba(41, 79, 125, 0.22);
+}
+
+#page005 .summary-card h3 {
+  margin-bottom: 15px;
+  color: var(--yellow);
+  font-size: 15px;
+  text-align: center;
+}
+
+#page005 .summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: white;
+  font-size: 12px;
+}
+
+#page005 .summary-table td {
+  padding: 11px 7px;
+  border-bottom: 1px solid rgba(101, 212, 208, 0.3);
+}
+
+#page005 .summary-table td:first-child {
+  font-weight: 500;
+}
+
+#page005 .summary-table td:last-child {
+  color: var(--yellow);
+  font-weight: bold;
+  text-align: right;
+  white-space: nowrap;
+}
+
+#page005 .summary-table .summary-total td {
+  padding-top: 15px;
+  border-top: 2px solid var(--yellow);
+  border-bottom: none;
+  color: var(--yellow);
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* ==================================
+   HISTORIQUE
+================================== */
+
+#page005 .history-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 15px 0;
+}
+
+#page005 .delete-all-button,
+#page005 .delete-period-button {
+  border: none;
+  border-radius: 8px;
+  background: #dc3545;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+#page005 .delete-all-button {
+  padding: 10px 15px;
+}
+
+#page005 .delete-period-button {
+  margin-top: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+#page005 .delete-all-button:hover,
+#page005 .delete-period-button:hover {
+  background: #b02a37;
+}
+
+#page005 .history-item {
   padding: 13px;
   margin-bottom: 12px;
   border: 1px solid rgba(101, 212, 208, 0.4);
@@ -520,102 +674,174 @@ body {
   line-height: 1.8;
 }
 
-.history-item strong {
+#page005 .history-item strong {
   color: var(--yellow);
 }
 
-.history-item button {
-  margin-top: 8px;
-  padding: 9px;
-  font-size: 12px;
-}
-
-.history-status {
-  color: #65d4d0;
+#page005 .history-status {
+  color: var(--turquoise);
   font-weight: bold;
 }
 
-.history-empty {
+#page005 .history-empty {
   color: #ddd;
   text-align: center;
   font-size: 13px;
 }
 
+/* ==================================
+   RESPONSIVE MOBILE
+================================== */
+
 @media (max-width: 480px) {
-  .work-content {
+
+  #page005 .work-content {
     padding: 0 10px;
   }
 
-  .period-card {
+  #page005 .period-card {
     padding: 13px;
   }
 
-  #workTable {
+  #page005 .period-card h2 {
+    font-size: 16px;
+  }
+
+  #page005 #workTable {
     font-size: 11px;
+  }
+
+  #page005 .summary-card {
+    padding: 10px;
+  }
+
+  #page005 .summary-table {
+    font-size: 11px;
+  }
+
+  #page005 .summary-table td {
+    padding: 9px 5px;
   }
 }
 
 
-.history-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin: 15px 0;
+
+
+
+/* MENU BURGER */
+
+.topbar {
+  position: relative;
 }
 
-.delete-all-button {
-    background: #dc3545;
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: bold;
+.menu-dropdown {
+  position: absolute;
+  top: 48px;
+  right: 10px;
+  z-index: 1000;
+  width: 190px;
+  padding: 7px;
+  background: #142238;
+  border: 1px solid #d6c900;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
-.delete-all-button:hover {
-    background: #b02a37;
-}
-
-.delete-period-button {
-    background: #dc3545;
-    color: white;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 7px;
-    cursor: pointer;
-    margin-top: 8px;
-}
-
-.delete-period-button:hover {
-    background: #b02a37;
-}
-
-
-
-
-
-/* TABLEAU RECAPITULATIF HISTORIQUE */
-
-.history-summary {
+.menu-dropdown button {
+  display: block;
   width: 100%;
-  margin: 12px 0;
-  border-collapse: collapse;
-  color: white;
-  font-size: 12px;
-}
-
-.history-summary td {
-  padding: 10px 7px;
-  border: 1px solid rgba(101, 212, 208, 0.5);
-}
-
-.history-summary td:first-child {
+  padding: 12px 10px;
+  border: none;
+  border-bottom: 1px solid rgba(214, 201, 0, 0.25);
+  background: transparent;
+  color: #d6c900;
+  text-align: left;
+  font-size: 13px;
   font-weight: bold;
+  cursor: pointer;
 }
 
-.history-summary td:last-child {
-  color: var(--yellow);
-  font-weight: bold;
-  text-align: right;
+.menu-dropdown button:last-child {
+  border-bottom: none;
 }
 
+.menu-dropdown button:hover {
+  background: rgba(101, 212, 208, 0.15);
+}
+
+
+/* PHOTO PROFIL DANS LA BARRE DU HAUT */
+
+.profile-icon-button {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid #d6c900;
+  border-radius: 50%;
+  background: #dedede;
+  cursor: pointer;
+}
+
+.profile-icon-button img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+
+/* AFFICHAGE PHOTO DE PROFIL */
+
+.photo-circle {
+  overflow: hidden;
+  position: relative;
+}
+
+.photo-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.photo-circle.has-photo img {
+  display: block;
+}
+
+.photo-circle.has-photo #photoPlaceholder {
+  display: none;
+}
+
+.profile-icon-button img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+
+
+
+
+
+
+
+
+.reset-test-button {
+  display: block;
+  margin: 20px auto;
+  padding: 10px 16px;
+  border: 1px solid #d6c900;
+  border-radius: 8px;
+  background: transparent;
+  color: #d6c900;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.reset-test-button:hover {
+  background: rgba(214, 201, 0, 0.12);
+}

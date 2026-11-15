@@ -1,1652 +1,754 @@
 
-// ======================================
-// ASA - FIREBASE + GESTION DU TRAVAIL
-// ======================================
 
-import { auth, db } from "./firebase.js";
 
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
-
-import {
-  doc,
-  setDoc,
-  getDoc
-} from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
-
-document.addEventListener("DOMContentLoaded", () => {
-
-  // ======================================
-  // VARIABLES GENERALES
-  // ======================================
-
-  let currentUser = null;
-  let currentProfile = null;
-  let periods = [];
-
-  let splashFinished = false;
-  let authReady = false;
-  let registrationInProgress = false;
-
-  const pages = {
-    page001: document.getElementById("page001"),
-    page002: document.getElementById("page002"),
-    page003: document.getElementById("page003"),
-    page004: document.getElementById("page004"),
-    page005: document.getElementById("page005")
-  };
-
-  const STORAGE_KEY = "asaWorkPeriods";
-
-  function showPage(pageId) {
-
-    Object.values(pages).forEach(page => {
-      if (page) page.classList.add("hidden");
-    });
-
-    if (pages[pageId]) {
-      pages[pageId].classList.remove("hidden");
-    }
-
-  }
-
-  function showInitialPage() {
-
-    if (!splashFinished || !authReady) return;
-
-    if (currentUser) {
-      showPage("page004");
-    } else {
-      showPage("page002");
-    }
-
-  }
-
-
-  // ======================================
-  // PAGE 001 : LOGO PENDANT 3 SECONDES
-  // ======================================
-
-  showPage("page001");
-
-  setTimeout(() => {
-
-    splashFinished = true;
-    showInitialPage();
-
-  }, 3000);
-
-
-  // ======================================
-  // GESTION DES ERREURS FIREBASE
-  // ======================================
-
-  function firebaseErrorMessage(error) {
-
-    console.error("Erreur Firebase :", error);
-
-    const messages = {
-      "auth/email-already-in-use":
-        "Cette adresse e-mail possède déjà un compte.",
-
-      "auth/invalid-email":
-        "Adresse e-mail invalide.",
-
-      "auth/weak-password":
-        "Le mot de passe est trop faible.",
-
-      "auth/user-not-found":
-        "Aucun compte trouvé avec cette adresse e-mail.",
-
-      "auth/wrong-password":
-        "Mot de passe incorrect.",
-
-      "auth/invalid-credential":
-        "Adresse e-mail ou mot de passe incorrect.",
-
-      "auth/too-many-requests":
-        "Trop de tentatives. Réessayez plus tard.",
-
-      "auth/network-request-failed":
-        "Problème de connexion Internet."
-    };
-
-    return messages[error.code] ||
-      "Une erreur est survenue. Veuillez réessayer.";
-
-  }
-
-
-  // ======================================
-  // PAGE 002 : ALLER À L'INSCRIPTION
-  // ======================================
-
-  document.getElementById("openRegister")
-    .addEventListener("click", event => {
-
-      event.preventDefault();
-
-      document.getElementById("registerMessage").textContent = "";
-
-      showPage("page003");
-
-    });
-
-  document.getElementById("backToLogin")
-    .addEventListener("click", event => {
-
-      event.preventDefault();
-
-      document.getElementById("loginMessage").textContent = "";
-
-      showPage("page002");
-
-    });
-
-
-  // ======================================
-  // FIREBASE : INSCRIPTION
-  // ======================================
-
-  const registerForm = document.getElementById("registerForm");
-  const registerMessage = document.getElementById("registerMessage");
-
-  registerForm.addEventListener("submit", async event => {
-
-    event.preventDefault();
-
-    const name = document.getElementById("fullName").value.trim();
-    const email = document.getElementById("registerContact").value.trim();
-    const birth = document.getElementById("birthDate").value;
-    const password = document.getElementById("registerPassword").value;
-    const confirmPassword =
-      document.getElementById("confirmPassword").value;
-
-    registerMessage.textContent = "";
-
-    if (!name || !email || !birth || !password || !confirmPassword) {
-
-      registerMessage.textContent =
-        "Veuillez remplir tous les champs.";
-
-      return;
-
-    }
-
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailPattern.test(email)) {
-
-      registerMessage.textContent =
-        "Veuillez saisir une adresse e-mail valide.";
-
-      return;
-
-    }
-
-    if (password !== confirmPassword) {
-
-      registerMessage.textContent =
-        "Les deux mots de passe ne correspondent pas.";
-
-      return;
-
-    }
-
-    if (password.length < 6) {
-
-      registerMessage.textContent =
-        "Le mot de passe doit contenir au moins 6 caractères.";
-
-      return;
-
-    }
-
-    const birthDate = new Date(birth + "T00:00:00");
-
-    if (isNaN(birthDate.getTime()) || birthDate > new Date()) {
-
-      registerMessage.textContent =
-        "Veuillez vérifier votre date de naissance.";
-
-      return;
-
-    }
-
-    try {
-
-      // Empêcher le chargement du profil avant sa création
-      registrationInProgress = true;
-
-      registerMessage.textContent = "Création du compte...";
-
-      // Créer le compte Firebase
-      const credential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-      const user = credential.user;
-
-      // Informations du profil
-      const profile = {
-        name: name,
-        email: email,
-        birth: birth,
-        photo: "",
-        createdAt: new Date().toISOString()
-      };
-
-      // Enregistrer le profil dans Firestore
-      await setDoc(
-        doc(db, "users", user.uid),
-        profile
-      );
-
-      // Garder l'utilisateur connecté après l'inscription
-      currentUser = user;
-      currentProfile = profile;
-
-      // Charger les données de cet utilisateur
-      loadPeriods();
-
-      // Afficher le profil
-      displayProfile(currentProfile);
-
-      registerForm.reset();
-
-      registerMessage.textContent = "";
-
-      // Autoriser l'affichage de la page 004
-      authReady = true;
-      registrationInProgress = false;
-
-      showInitialPage();
-
-    } catch (error) {
-
-      registrationInProgress = false;
-
-      registerMessage.textContent =
-        firebaseErrorMessage(error);
-
-    }
-
-  });
-
-
-  // ======================================
-  // FIREBASE : CONNEXION
-  // ======================================
-
-  const loginForm = document.getElementById("loginForm");
-  const loginMessage = document.getElementById("loginMessage");
-
-  loginForm.addEventListener("submit", async event => {
-
-    event.preventDefault();
-
-    const email = document.getElementById("loginContact").value.trim();
-    const password = document.getElementById("loginPassword").value;
-
-    loginMessage.textContent = "";
-
-    if (!email || !password) {
-
-      loginMessage.textContent =
-        "Veuillez remplir tous les champs.";
-
-      return;
-
-    }
-
-    try {
-
-      loginMessage.textContent = "Connexion en cours...";
-
-      await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-      loginForm.reset();
-
-    } catch (error) {
-
-      loginMessage.textContent =
-        firebaseErrorMessage(error);
-
-    }
-
-  });
-
-
-  // ======================================
-  // FIREBASE : RESTAURER LA SESSION
-  // ======================================
-
-  onAuthStateChanged(auth, async user => {
-
-    // Ne pas charger le profil pendant l'inscription
-    if (registrationInProgress) return;
-
-    currentUser = user;
-
-    if (user) {
-
-      try {
-
-        const profileReference = doc(db, "users", user.uid);
-
-        const profileSnapshot = await getDoc(profileReference);
-
-        if (!profileSnapshot.exists()) {
-
-          currentProfile = null;
-          authReady = true;
-
-          loginMessage.textContent =
-            "Profil introuvable. Veuillez contacter l'administrateur.";
-
-          showPage("page002");
-
-          return;
-
-        }
-
-        currentProfile = profileSnapshot.data();
-
-        displayProfile(currentProfile);
-
-        loadPeriods();
-
-      } catch (error) {
-
-        console.error("Erreur de chargement du profil :", error);
-
-        loginMessage.textContent =
-          "Impossible de charger votre profil.";
-
-      }
-
-    } else {
-
-      currentProfile = null;
-      periods = [];
-
-    }
-
-    authReady = true;
-
-    showInitialPage();
-
-  });
-
-
-  // ======================================
-  // PAGE 004 : AFFICHER LE PROFIL
-  // ======================================
-
-  function displayProfile(profile) {
-
-    document.getElementById("welcomeName").textContent =
-      '"' + (profile.name || "") + '"';
-
-    const photo = document.getElementById("profilePhoto");
-    const photoButton = document.getElementById("choosePhoto");
-
-    if (profile.photo) {
-
-      photo.src = profile.photo;
-      photoButton.classList.add("has-photo");
-
-    } else {
-
-      photo.removeAttribute("src");
-      photoButton.classList.remove("has-photo");
-
-    }
-
-  }
-
-
-
-  // ======================================
-  // STOCKAGE DES PERIODES PAR UTILISATEUR
-  // ======================================
-
-  function getStorageKey() {
-
-    if (!currentUser) return null;
-
-    return STORAGE_KEY + "_" + currentUser.uid;
-
-  }
-
-  function loadPeriods() {
-
-    if (!currentUser) {
-
-      periods = [];
-      return;
-
-    }
-
-    const userKey = getStorageKey();
-
-    let saved = localStorage.getItem(userKey);
-
-    // Récupérer les anciennes périodes
-    if (saved === null) {
-
-      const oldPeriods = localStorage.getItem(STORAGE_KEY);
-
-      if (oldPeriods !== null) {
-
-        saved = oldPeriods;
-
-        localStorage.setItem(userKey, oldPeriods);
-
-      }
-
-    }
-
-    try {
-
-      periods = JSON.parse(saved || "[]");
-
-      if (!Array.isArray(periods)) {
-        periods = [];
-      }
-
-    } catch (error) {
-
-      console.error("Historique invalide :", error);
-
-      periods = [];
-
-    }
-
-  }
-
-  function savePeriods() {
-
-    if (!currentUser) return;
-
-    localStorage.setItem(
-      getStorageKey(),
-      JSON.stringify(periods)
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --navy: #142238;
+  --blue: #294f7d;
+  --turquoise: #65d4d0;
+  --yellow: #d6c900;
+  --dark-yellow: #615900;
+  --white: #eeeeee;
+}
+
+body {
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background: var(--navy);
+  color: var(--yellow);
+}
+
+.page {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    linear-gradient(
+      to bottom,
+      #142238 0%,
+      #1b3b50 23%,
+      #63d3d0 53%,
+      #245268 79%,
+      #142238 100%
     );
+}
 
+.hidden {
+  display: none !important;
+}
+
+/* LOGO */
+
+.logo-symbol {
+  width: 215px;
+  height: 195px;
+  padding: 13px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #a99b00;
+  background: #383900;
+  border: 8px solid #a99b00;
+  border-radius: 55px;
+}
+
+.logo-symbol svg,
+.mini-logo svg,
+.tiny-logo svg {
+  width: 100%;
+  height: 100%;
+}
+
+.brand-name {
+  margin-top: 10px;
+  color: #514900;
+  font-size: 27px;
+  font-weight: bold;
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+.main-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* PAGE 001 */
+
+.splash {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* PAGE 002 */
+
+.login-content {
+  width: 100%;
+  max-width: 390px;
+  min-height: 100vh;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 28px;
+}
+
+.mini-logo {
+  width: 68px;
+  height: 62px;
+  padding: 7px;
+  margin-bottom: 45px;
+  color: #a99b00;
+  background: #383900;
+  border: 4px solid #a99b00;
+  border-radius: 20px;
+}
+
+.login-form,
+#registerForm {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.login-form input,
+#registerForm input {
+  width: 100%;
+  height: 42px;
+  padding: 8px 12px;
+  border: none;
+  border-bottom: 4px solid #244a78;
+  border-radius: 0 0 18px 18px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #13233b;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.login-form input::placeholder,
+#registerForm input::placeholder {
+  color: #f5f5f5;
+  opacity: 1;
+}
+
+.login-form input:focus,
+#registerForm input:focus {
+  border-bottom-color: var(--yellow);
+}
+
+.blue-button {
+  width: 100%;
+  height: 43px;
+  border: none;
+  border-radius: 25px;
+  background: var(--blue);
+  color: #101e39;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.blue-button:active {
+  transform: scale(0.98);
+}
+
+.register-link {
+  margin-top: 28px;
+  color: #514900;
+  font-size: 15px;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+/* BARRE DU HAUT - PAGE 003 ET 004 */
+
+.topbar {
+  width: 100%;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+}
+
+.tiny-logo {
+  flex: 0 0 25px;
+  width: 25px;
+  height: 23px;
+  padding: 2px;
+  color: #a99b00;
+  background: #383900;
+  border: 2px solid #a99b00;
+  border-radius: 7px;
+}
+
+.search-box {
+  height: 23px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  border: 2px solid #a99b00;
+  border-radius: 15px;
+  padding: 0 6px;
+}
+
+.search-box input {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--yellow);
+  font-size: 10px;
+}
+
+.search-box input::placeholder {
+  color: #a99b00;
+}
+
+.search-icon {
+  font-size: 21px;
+  line-height: 1;
+  color: var(--yellow);
+}
+
+.icon-button {
+  border: none;
+  background: transparent;
+  color: var(--yellow);
+  font-size: 21px;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.menu-button {
+  font-size: 23px;
+}
+
+/* PAGE 003 */
+
+.register-content {
+  width: 100%;
+  max-width: 390px;
+  margin: 90px auto 0;
+  padding: 0 25px 35px;
+}
+
+#registerForm {
+  gap: 24px;
+}
+
+#registerForm input {
+  height: 43px;
+}
+
+#registerForm input[type="date"] {
+  color: #29466d;
+  font-size: 12px;
+}
+
+.register-button {
+  margin-top: 27px;
+  height: 42px;
+  font-size: 14px;
+}
+
+.back-link {
+  display: block;
+  margin-top: 20px;
+  text-align: center;
+  color: #514900;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+/* PAGE 004 */
+
+.profile-content {
+  width: 100%;
+  max-width: 390px;
+  margin: 120px auto 0;
+  padding: 0 25px 40px;
+  text-align: center;
+}
+
+.profile-content h1 {
+  font-size: 19px;
+  margin-bottom: 5px;
+  letter-spacing: 1px;
+}
+
+.profile-content h2 {
+  font-size: 18px;
+  margin-bottom: 40px;
+  letter-spacing: 1px;
+}
+
+.photo-circle {
+  width: 142px;
+  height: 142px;
+  margin: 0 auto;
+  border: 4px solid #b3a400;
+  border-radius: 50%;
+  background: #dedede;
+  color: #b0a300;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.photo-circle img {
+  width: 100%;
+  height: 100%;
+  display: none;
+  object-fit: cover;
+}
+
+.photo-circle.has-photo img {
+  display: block;
+}
+
+.photo-circle.has-photo #photoPlaceholder {
+  display: none;
+}
+
+#photoPlaceholder {
+  font-size: 20px;
+  line-height: 1.1;
+  font-weight: bold;
+}
+
+.photo-message {
+  margin-top: 10px;
+  color: #29466d;
+  font-size: 10px;
+}
+
+.enter-button {
+  margin-top: 38px;
+  height: 43px;
+}
+
+.message {
+  margin-top: 15px;
+  color: #514900;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* TELEPHONE */
+
+@media (max-width: 480px) {
+  .logo-symbol {
+    width: 205px;
+    height: 185px;
   }
 
-
-  // ======================================
-  // PAGE 004 : CHOISIR UNE PHOTO
-  // ======================================
-
-  const choosePhoto = document.getElementById("choosePhoto");
-  const photoInput = document.getElementById("photoInput");
-  const photoMessage = document.getElementById("photoMessage");
-
-  choosePhoto.addEventListener("click", () => {
-
-    if (!currentUser) return;
-
-    photoInput.click();
-
-  });
-
-  photoInput.addEventListener("change", async () => {
-
-    const file = photoInput.files[0];
-
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-
-      photoMessage.textContent =
-        "Veuillez choisir une image.";
-
-      return;
-
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = event => {
-
-      const image = new Image();
-
-      image.onload = async () => {
-
-        const canvas = document.createElement("canvas");
-        const maxSize = 350;
-
-        let width = image.width;
-        let height = image.height;
-
-        if (width > height && width > maxSize) {
-
-          height = Math.round(height * maxSize / width);
-          width = maxSize;
-
-        } else if (height > maxSize) {
-
-          width = Math.round(width * maxSize / height);
-          height = maxSize;
-
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        const context = canvas.getContext("2d");
-
-        context.drawImage(image, 0, 0, width, height);
-
-        const compressedPhoto =
-          canvas.toDataURL("image/jpeg", 0.7);
-
-        try {
-
-          photoMessage.textContent =
-            "Enregistrement de la photo...";
-
-          const updatedProfile = {
-            ...currentProfile,
-            photo: compressedPhoto
-          };
-
-          await setDoc(
-            doc(db, "users", currentUser.uid),
-            updatedProfile
-          );
-
-          currentProfile = updatedProfile;
-
-          displayProfile(currentProfile);
-
-          photoMessage.textContent =
-            "Photo de profil mise à jour.";
-
-        } catch (error) {
-
-          console.error(error);
-
-          photoMessage.textContent =
-            "Impossible d'enregistrer la photo.";
-
-        }
-
-      };
-
-      image.onerror = () => {
-
-        photoMessage.textContent =
-          "Impossible de lire cette image.";
-
-      };
-
-      image.src = event.target.result;
-
-    };
-
-    reader.readAsDataURL(file);
-
-  });
-
-
-  // ======================================
-  // BOUTON ENTRER : PAGE 005
-  // ======================================
-
-  document.getElementById("enterApp").addEventListener("click", () => {
-
-    if (!currentUser) return;
-
-    showPage("page005");
-
-    initializeWorkPage();
-
-  });
-
-  document.getElementById("backProfile").addEventListener("click", () => {
-
-    showPage("page004");
-
-  });
-
-
-  // ======================================
-  // ICÔNES DU MENU
-  // ======================================
-
-  // ======================================
-  // MENU PROFIL ET DECONNEXION
-  // ======================================
-
-  document.querySelectorAll(".menu-container").forEach(container => {
-
-    const menuButton = container.querySelector(".menu-button");
-    const menuDropdown = container.querySelector(".menu-dropdown");
-
-    menuButton.addEventListener("click", () => {
-
-      const isOpen = !menuDropdown.classList.contains("hidden");
-
-      menuDropdown.classList.toggle("hidden");
-
-      menuButton.setAttribute("aria-expanded", String(!isOpen));
-
-    });
-
-    // BOUTON PROFIL
-    container.querySelector(".menu-profile").addEventListener("click", () => {
-
-      menuDropdown.classList.add("hidden");
-      menuButton.setAttribute("aria-expanded", "false");
-
-      showPage("page004");
-
-    });
-
-    // BOUTON DECONNEXION
-    container.querySelector(".menu-logout").addEventListener("click", async () => {
-
-      const confirmation = confirm("Voulez-vous vraiment vous déconnecter ?");
-
-      if (!confirmation) return;
-
-      try {
-
-        await signOut(auth);
-
-        currentUser = null;
-        currentProfile = null;
-        periods = [];
-
-        menuDropdown.classList.add("hidden");
-        menuButton.setAttribute("aria-expanded", "false");
-
-        showPage("page002");
-
-      } catch (error) {
-
-        console.error("Erreur de déconnexion :", error);
-
-        alert("Impossible de se déconnecter. Veuillez réessayer.");
-
-      }
-
-    });
-
-  });
-
-
-  // ======================================
-  // PAGE 005 : GESTION DES PERIODES
-  // ======================================
-
-  function getActivePeriod() {
-
-    return periods.find(period => !period.closed);
-
+  .register-content {
+    margin-top: 75px;
   }
 
-  function formatDate(dateString) {
+  .profile-content {
+    margin-top: 105px;
+  }
+}
 
-    const [year, month, day] = dateString.split("-");
-
-    return `${day}/${month}/${year}`;
-
+@media (max-height: 650px) {
+  .register-content {
+    margin-top: 35px;
   }
 
-  function minutesToTime(minutes) {
-
-    const sign = minutes < 0 ? "-" : "";
-    const absolute = Math.abs(minutes);
-
-    const hours = Math.floor(absolute / 60);
-    const mins = absolute % 60;
-
-    return `${sign}${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
-
+  .profile-content {
+    margin-top: 45px;
   }
 
-
-  function timeToMinutes(time) {
-
-    if (!time) return null;
-
-    const [hours, minutes] = time.split(":").map(Number);
-
-    if (!Number.isFinite(hours) || !Number.isFinite(minutes) ||
-        hours < 0 || minutes < 0 || minutes > 59) return null;
-
-    return hours * 60 + minutes;
-
+  .login-content {
+    padding-top: 15px;
+    padding-bottom: 15px;
   }
 
+  .mini-logo {
+    margin-bottom: 25px;
+  }
+}
 
-  // ======================================
-  // LECTURE DES HEURES MENSUELLES
-  // ======================================
 
-  function parseMonthlyHours(value) {
+/* ==================================
+   PAGE 005 : TEMPS DE TRAVAIL
+================================== */
 
-    const match = String(value || "").trim().match(/^(\d{1,3}):(\d{2})$/);
+#page005 {
+  display: block;
+  min-height: 100vh;
+  padding-bottom: 35px;
+}
 
-    if (!match || Number(match[2]) > 59) return null;
+.page-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--yellow);
+}
 
-    return Number(match[1]) * 60 + Number(match[2]);
+.work-content {
+  width: 100%;
+  max-width: 650px;
+  margin: 20px auto;
+  padding: 0 14px;
+}
 
+.period-card {
+  padding: 18px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(214, 201, 0, 0.5);
+  border-radius: 15px;
+  background: rgba(20, 34, 56, 0.75);
+}
+
+.period-card h2 {
+  color: var(--yellow);
+  font-size: 17px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.period-card label {
+  display: block;
+  margin: 15px 0 7px;
+  color: #e4e4e4;
+}
+
+.period-card input {
+  width: 100%;
+  height: 42px;
+  padding: 8px;
+  border: 1px solid #65d4d0;
+  border-radius: 8px;
+  background: #edf3f5;
+  color: #142238;
+}
+
+.period-details {
+  color: #e9eeee;
+  font-size: 13px;
+  line-height: 2;
+  margin-bottom: 15px;
+}
+
+.period-details strong {
+  color: var(--yellow);
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+#workTable {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  color: white;
+  font-size: 12px;
+}
+
+#workTable th,
+#workTable td {
+  padding: 9px 5px;
+  text-align: center;
+  border: 1px solid rgba(101, 212, 208, 0.5);
+}
+
+#workTable th {
+  background: #294f7d;
+  color: white;
+}
+
+#workTable td input {
+  min-width: 75px;
+  height: 32px;
+  padding: 4px;
+  font-size: 12px;
+  border-radius: 5px;
+}
+
+.table-date {
+  white-space: nowrap;
+}
+
+.period-total {
+  padding: 14px 0;
+  color: white;
+  font-size: 14px;
+  line-height: 2;
+}
+
+.period-total strong {
+  color: var(--yellow);
+}
+
+.close-button {
+  width: 100%;
+  margin-top: 15px;
+  padding: 13px;
+  border: 1px solid #e2a4a4;
+  border-radius: 25px;
+  background: #743d49;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.history-item {
+  padding: 13px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(101, 212, 208, 0.4);
+  border-radius: 10px;
+  color: white;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.history-item strong {
+  color: var(--yellow);
+}
+
+.history-item button {
+  margin-top: 8px;
+  padding: 9px;
+  font-size: 12px;
+}
+
+.history-status {
+  color: #65d4d0;
+  font-weight: bold;
+}
+
+.history-empty {
+  color: #ddd;
+  text-align: center;
+  font-size: 13px;
+}
+
+@media (max-width: 480px) {
+  .work-content {
+    padding: 0 10px;
   }
 
-
-  // ======================================
-  // FORMATAGE DU SALAIRE
-  // ======================================
-
-  function formatAr(value) {
-
-    return new Intl.NumberFormat("fr-FR", {
-      maximumFractionDigits: 2
-    }).format(Number(value) || 0) + " Ar";
-
+  .period-card {
+    padding: 13px;
   }
 
-
-  // ======================================
-  // CALCUL DES TOTAUX DE LA PERIODE
-  // ======================================
-
-  function calculatePeriodTotals(period) {
-
-    let totalWorked = 0;
-    let totalDifference = 0;
-
-    (period.rows || []).forEach(row => {
-
-      const result = calculateRow(row, period.dailyHours);
-
-      if (result.worked !== null) {
-
-        totalWorked += result.worked;
-        totalDifference += result.difference;
-
-      }
-
-    });
-
-    return { totalWorked, totalDifference };
-
+  #workTable {
+    font-size: 11px;
   }
+}
 
 
-  // ======================================
-  // CALCUL DU SALAIRE BRUT
-  // ======================================
+.history-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin: 15px 0;
+}
 
-  function calculateSalary(period) {
+.delete-all-button {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
 
-    const totals = calculatePeriodTotals(period);
+.delete-all-button:hover {
+    background: #b02a37;
+}
 
-    const monthlyMinutes = Number(
-      period.monthlyHoursMinutes ??
-      parseMonthlyHours(period.monthlyHours)
-    );
+.delete-period-button {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    margin-top: 8px;
+}
 
-    const baseSalary = Number(period.baseSalary);
-
-    if (!Number.isFinite(monthlyMinutes) || monthlyMinutes <= 0 ||
-        !Number.isFinite(baseSalary) || baseSalary <= 0) return null;
-
-    const normalMinutes = Math.min(
-      totals.totalWorked,
-      monthlyMinutes
-    );
-
-    const overtimeMinutes = Math.max(
-      0,
-      totals.totalWorked - monthlyMinutes
-    );
-
-    const hourlyRate = baseSalary / (monthlyMinutes / 60);
-
-    const overtimeAmount =
-      (overtimeMinutes / 60) * hourlyRate * 1.30;
-
-    const grossSalary = baseSalary + overtimeAmount;
-
-    return {
-      totalWorkedMinutes: totals.totalWorked,
-      normalMinutes,
-      overtimeMinutes,
-      hourlyRate,
-      overtimeAmount,
-      grossSalary,
-      majoration: 30
-    };
-
-  }
-
-
-  // ======================================
-  // INITIALISER LA PAGE 005
-  // ======================================
-
-
-function initializeWorkPage() {
-
-  if (!currentUser) return;
-
-  const active = getActivePeriod();
-
-  const newPeriodForm = document.getElementById("newPeriodForm");
-  const activePeriod = document.getElementById("activePeriod");
-
-  const needsSalaryInfo = active && (
-    !active.monthlyHoursMinutes ||
-    !active.baseSalary
-  );
-
-  newPeriodForm.classList.toggle(
-    "hidden",
-    !!active && !needsSalaryInfo
-  );
-
-  activePeriod.classList.toggle("hidden", !active);
-
-  document.getElementById("salarySummary")
-    .classList.add("hidden");
-
-  const periodStartInput = document.getElementById("periodStart");
-  const dailyHoursInput = document.getElementById("dailyHours");
-  const monthlyHoursInput = document.getElementById("monthlyHours");
-  const baseSalaryInput = document.getElementById("baseSalary");
-  const startButton = document.getElementById("startPeriod");
-
-  if (active) {
-
-    periodStartInput.value = active.startDate;
-    dailyHoursInput.value = active.dailyHours;
-
-    periodStartInput.disabled = true;
-    dailyHoursInput.disabled = true;
-
-    monthlyHoursInput.value = active.monthlyHours || "";
-    baseSalaryInput.value = active.baseSalary || "";
-
-    startButton.textContent = "Enregistrer les informations";
-
-    document.getElementById("periodStartDisplay").textContent =
-      formatDate(active.startDate);
-
-    document.getElementById("dailyHoursDisplay").textContent =
-      active.dailyHours;
-
-    document.getElementById("monthlyHoursDisplay").textContent =
-      active.monthlyHours || "Non renseigné";
-
-    document.getElementById("baseSalaryDisplay").textContent =
-      active.baseSalary ? formatAr(active.baseSalary) : "Non renseigné";
-
-    renderWorkTable(active);
-
-  } else {
-
-    periodStartInput.disabled = false;
-    dailyHoursInput.disabled = false;
-
-    startButton.textContent = "Commencer la période";
-
-  }
-
-  renderHistory();
-
+.delete-period-button:hover {
+    background: #b02a37;
 }
 
 
 
-  // ======================================
-  // COMMENCER UNE NOUVELLE PERIODE
-  // ======================================
+/* TABLEAU RECAPITULATIF HISTORIQUE */
+
+.history-summary {
+  width: 100%;
+  margin: 12px 0;
+  border-collapse: collapse;
+  color: white;
+  font-size: 12px;
+}
+
+.history-summary td {
+  padding: 10px 7px;
+  border: 1px solid rgba(101, 212, 208, 0.5);
+}
+
+.history-summary td:first-child {
+  font-weight: bold;
+}
+
+.history-summary td:last-child {
+  color: var(--yellow);
+  font-weight: bold;
+  text-align: right;
+}
+
+
+
+/* MENU DÉROULANT AsA */
+
+.menu-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.menu-dropdown {
+  position: absolute;
+  top: 35px;
+  right: 0;
+  z-index: 1000;
+  width: 155px;
+  padding: 7px;
+  border: 1px solid var(--yellow);
+  border-radius: 10px;
+  background: var(--navy);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.menu-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 11px 9px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--yellow);
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.menu-dropdown button:hover {
+  background: var(--blue);
+}
+
+.menu-dropdown .menu-logout {
+  color: #ff8585;
+  border-top: 1px solid rgba(214, 201, 0, 0.3);
+}
+
+
+
+
+/* ==================================
+   PAGE 005 : CALCUL SALAIRE
+================================== */
+
+/* Champs supplémentaires */
+
+#monthlyHours,
+#baseSalary {
+  width: 100%;
+  height: 42px;
+  padding: 8px;
+  border: 1px solid var(--turquoise);
+  border-radius: 8px;
+  background: #edf3f5;
+  color: var(--navy);
+  font-size: 14px;
+}
+
+/* Récapitulatif salarial */
+
+.salary-summary-content {
+  color: white;
+  font-size: 13px;
+  line-height: 2.3;
+}
+
+.salary-summary-content p {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid rgba(101, 212, 208, 0.25);
+  padding: 7px 0;
+}
 
+.salary-summary-content strong {
+  color: var(--yellow);
+  text-align: right;
+}
 
-document.getElementById("startPeriod").addEventListener("click", () => {
+.salary-result {
+  margin-top: 20px;
+  padding: 18px 10px;
+  border: 1px solid var(--turquoise);
+  border-radius: 12px;
+  background: rgba(101, 212, 208, 0.12);
+  text-align: center;
+}
 
-  if (!currentUser) return;
+.salary-result p {
+  display: block;
+  border: none;
+  color: white;
+  font-size: 15px;
+  font-weight: bold;
+}
 
-  const active = getActivePeriod();
+.salary-result strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--yellow);
+  font-size: 25px;
+}
 
-  const monthlyHours =
-    document.getElementById("monthlyHours").value.trim();
+#confirmClosePeriod {
+  margin-top: 15px;
+}
 
-  const monthlyHoursMinutes =
-    parseMonthlyHours(monthlyHours);
+#cancelClosePeriod {
+  margin-top: 10px;
+}
 
-  const baseSalary =
-    Number(document.getElementById("baseSalary").value);
+#monthlyHours::placeholder,
+#baseSalary::placeholder {
+  color: #777;
+}
 
-  if (!monthlyHours || !baseSalary) {
 
-    alert("Veuillez remplir toutes les informations.");
 
-    return;
 
-  }
 
-  if (monthlyHoursMinutes === null || monthlyHoursMinutes <= 0) {
 
-    alert("Format invalide. Exemple : 173:20");
 
-    return;
 
-  }
 
-  if (!Number.isFinite(baseSalary) || baseSalary <= 0) {
-
-    alert("Veuillez saisir un salaire de base valide.");
-
-    return;
-
-  }
-
-  // Raha efa misy période dia manampy ny vaovao tsy ampy
-  if (active) {
-
-    active.monthlyHours = monthlyHours;
-    active.monthlyHoursMinutes = monthlyHoursMinutes;
-    active.baseSalary = baseSalary;
-
-    savePeriods();
-
-    initializeWorkPage();
-
-    alert("Informations enregistrées avec succès.");
-
-    return;
-
-  }
-
-  // Raha mbola tsy misy période dia mamorona vaovao
-  const startDate =
-    document.getElementById("periodStart").value;
-
-  const dailyHours =
-    document.getElementById("dailyHours").value;
-
-  if (!startDate || !dailyHours) {
-
-    alert("Veuillez remplir toutes les informations.");
-
-    return;
-
-  }
-
-  const period = {
-
-    id: Date.now(),
-    startDate,
-    dailyHours,
-    monthlyHours,
-    monthlyHoursMinutes,
-    baseSalary,
-    rows: [],
-    closed: false,
-    endDate: null,
-    salary: null
-
-  };
-
-  periods.push(period);
-
-  savePeriods();
-
-  initializeWorkPage();
-
-});
-
-
-  // ======================================
-  // AJOUTER UNE LIGNE DE TRAVAIL
-  // ======================================
-
-  document.getElementById("addWorkLine").addEventListener("click", () => {
-
-    const active = getActivePeriod();
-
-    if (!active || active.closed) return;
-
-    let nextDate;
-
-    if (active.rows.length === 0) {
-
-      nextDate = active.startDate;
-
-    } else {
-
-      const lastDate = active.rows[active.rows.length - 1].date;
-
-      const date = new Date(lastDate + "T12:00:00");
-
-      date.setDate(date.getDate() + 1);
-
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-
-      nextDate = `${year}-${month}-${day}`;
-
-    }
-
-    active.rows.push({
-      date: nextDate,
-      start: "",
-      end: ""
-    });
-
-    savePeriods();
-
-    renderWorkTable(active);
-
-  });
-
-
-
-
-
-
-
-
-
-
-
-  
-
-  
-
-  // ======================================
-  // CALCUL DES HEURES ET DES ECARTS
-  // ======================================
-
-  function calculateRow(row, dailyHours) {
-
-    if (!row.start || !row.end) {
-
-      return {
-        worked: null,
-        difference: null
-      };
-
-    }
-
-    const start = timeToMinutes(row.start);
-
-    let end = timeToMinutes(row.end);
-
-    // Autoriser une fin de travail après minuit
-    if (end < start) {
-      end += 24 * 60;
-    }
-
-    const worked = end - start;
-    const expected = timeToMinutes(dailyHours);
-
-    return {
-      worked: worked,
-      difference: worked - expected
-    };
-
-  }
-
-
-  // ======================================
-  // AFFICHER LE TABLEAU DES HEURES
-  // ======================================
-
-  function renderWorkTable(period) {
-
-    const tbody = document.getElementById("workTableBody");
-
-    tbody.innerHTML = "";
-
-    let totalWorked = 0;
-    let totalDifference = 0;
-
-    period.rows.forEach(row => {
-
-      const result = calculateRow(row, period.dailyHours);
-
-      if (result.worked !== null) {
-
-        totalWorked += result.worked;
-        totalDifference += result.difference;
-
-      }
-
-      const tr = document.createElement("tr");
-
-      // DATE
-      const dateCell = document.createElement("td");
-
-      dateCell.className = "table-date";
-      dateCell.textContent = formatDate(row.date);
-
-      // HEURE DEBUT
-      const startCell = document.createElement("td");
-      const startInput = document.createElement("input");
-
-      startInput.type = "time";
-      startInput.value = row.start;
-      startInput.disabled = period.closed;
-
-      startInput.addEventListener("change", () => {
-
-        row.start = startInput.value;
-
-        savePeriods();
-
-        renderWorkTable(period);
-
-      });
-
-      startCell.appendChild(startInput);
-
-      // HEURE FIN
-      const endCell = document.createElement("td");
-      const endInput = document.createElement("input");
-
-      endInput.type = "time";
-      endInput.value = row.end;
-      endInput.disabled = period.closed;
-
-      endInput.addEventListener("change", () => {
-
-        row.end = endInput.value;
-
-        savePeriods();
-
-        renderWorkTable(period);
-
-      });
-
-      endCell.appendChild(endInput);
-
-      // HEURES JOURNALIERES
-      const workedCell = document.createElement("td");
-
-      workedCell.textContent =
-        result.worked === null
-          ? "--:--"
-          : minutesToTime(result.worked);
-
-      // ECART
-      const differenceCell = document.createElement("td");
-
-      differenceCell.textContent =
-        result.difference === null
-          ? "--:--"
-          : minutesToTime(result.difference);
-
-      tr.append(
-        dateCell,
-        startCell,
-        endCell,
-        workedCell,
-        differenceCell
-      );
-
-      tbody.appendChild(tr);
-
-    });
-
-    document.getElementById("totalHours").textContent =
-      minutesToTime(totalWorked);
-
-    document.getElementById("totalDifference").textContent =
-      minutesToTime(totalDifference);
-
-  }
-
-
-
-
-  // ======================================
-  // TELECHARGER UN RAPPORT CSV
-  // ======================================
-
-  function downloadPeriod(period) {
-
-    const lines = [
-      ["Date", "H. début", "H. fin", "H/J", "Écart"]
-    ];
-
-    period.rows.forEach(row => {
-
-      const result = calculateRow(row, period.dailyHours);
-
-      lines.push([
-        formatDate(row.date),
-        row.start || "",
-        row.end || "",
-        result.worked === null ? "" : minutesToTime(result.worked),
-        result.difference === null ? "" : minutesToTime(result.difference)
-      ]);
-
-    });
-
-    const salary = period.salary || calculateSalary(period);
-
-    if (salary) {
-
-      lines.push([]);
-      lines.push(["RÉCAPITULATIF DU SALAIRE"]);
-      lines.push(["Salaire de base", period.baseSalary]);
-      lines.push(["Heures mensuelles", period.monthlyHours]);
-      lines.push(["Total heures travaillées", minutesToTime(salary.totalWorkedMinutes)]);
-      lines.push(["Heures normales", minutesToTime(salary.normalMinutes)]);
-      lines.push(["Heures supplémentaires", minutesToTime(salary.overtimeMinutes)]);
-      lines.push(["Taux horaire", salary.hourlyRate.toFixed(2)]);
-      lines.push(["Majoration heures supplémentaires", "30 %"]);
-      lines.push(["Montant heures supplémentaires", salary.overtimeAmount.toFixed(2)]);
-      lines.push(["SALAIRE BRUT", salary.grossSalary.toFixed(2)]);
-
-    }
-
-    const csv = lines.map(line =>
-      line.map(value =>
-        `"${String(value ?? "").replace(/"/g, '""')}"`
-      ).join(";")
-    ).join("\n");
-
-    const blob = new Blob(
-      ["\uFEFF" + csv],
-      { type: "text/csv;charset=utf-8;" }
-    );
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = `AsA-rapport-${period.startDate}.csv`;
-
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    URL.revokeObjectURL(url);
-
-  }
-
-  document.getElementById("downloadReport").addEventListener("click", () => {
-
-    const active = getActivePeriod();
-
-    if (active) downloadPeriod(active);
-
-  });
-
-
-  // ======================================
-  // AFFICHER LE RECAPITULATIF DU SALAIRE
-  // ======================================
-
-  function displaySalarySummary(period, salary) {
-
-    document.getElementById("summaryBaseSalary").textContent =
-      formatAr(period.baseSalary);
-
-    document.getElementById("summaryNormalHours").textContent =
-      minutesToTime(salary.normalMinutes);
-
-    document.getElementById("summaryOvertimeHours").textContent =
-      minutesToTime(salary.overtimeMinutes);
-
-    document.getElementById("summaryHourlyRate").textContent =
-      formatAr(salary.hourlyRate);
-
-    document.getElementById("summaryOvertimeAmount").textContent =
-      formatAr(salary.overtimeAmount);
-
-    document.getElementById("summaryGrossSalary").textContent =
-      formatAr(salary.grossSalary);
-
-  }
-
-
-  // ======================================
-  // FERMETURE : CALCULER AVANT CONFIRMATION
-  // ======================================
-
-  document.getElementById("closePeriod").addEventListener("click", () => {
-
-    const active = getActivePeriod();
-
-    if (!active) return;
-
-    if (active.rows.length === 0) {
-
-      alert("Veuillez ajouter au moins une ligne de travail.");
-
-      return;
-
-    }
-
-    const incomplete = active.rows.some(
-      row => !row.start || !row.end
-    );
-
-    if (incomplete) {
-
-      alert("Veuillez compléter toutes les heures avant de fermer la période.");
-
-      return;
-
-    }
-
-    const salary = calculateSalary(active);
-
-    if (!salary) {
-
-      alert("Les informations du salaire sont incomplètes. Vérifiez les heures mensuelles et le salaire de base.");
-
-      return;
-
-    }
-
-    displaySalarySummary(active, salary);
-
-    document.getElementById("activePeriod").classList.add("hidden");
-
-    document.getElementById("salarySummary").classList.remove("hidden");
-
-  });
-
-
-  // ======================================
-  // ANNULER LA FERMETURE
-  // ======================================
-
-  document.getElementById("cancelClosePeriod").addEventListener("click", () => {
-
-    document.getElementById("salarySummary").classList.add("hidden");
-
-    document.getElementById("activePeriod").classList.remove("hidden");
-
-  });
-
-
-  // ======================================
-  // CONFIRMER LA FERMETURE
-  // ======================================
-
-  document.getElementById("confirmClosePeriod").addEventListener("click", () => {
-
-    const active = getActivePeriod();
-
-    if (!active) return;
-
-    const salary = calculateSalary(active);
-
-    if (!salary) {
-
-      alert("Impossible de calculer le salaire. Vérifiez les informations.");
-
-      return;
-
-    }
-
-    active.salary = salary;
-    active.closed = true;
-
-    active.endDate = active.rows[active.rows.length - 1].date;
-
-    savePeriods();
-
-    document.getElementById("salarySummary").classList.add("hidden");
-
-    initializeWorkPage();
-
-    alert("Période fermée avec succès. Vous pouvez commencer une nouvelle période.");
-
-  });
-
-
-
-
-  // ======================================
-  // HISTORIQUE DE TOUTES LES PERIODES
-  // ======================================
-
-  function renderHistory() {
-
-    const history = document.getElementById("periodHistory");
-
-    history.innerHTML = "";
-
-    const closedPeriods = periods
-      .filter(period => period.closed)
-      .sort((a, b) => b.id - a.id);
-
-    if (closedPeriods.length === 0) {
-
-      history.innerHTML =
-        '<p class="history-empty">Aucune période terminée.</p>';
-
-      return;
-
-    }
-
-    closedPeriods.forEach(period => {
-
-      const item = document.createElement("div");
-
-      item.className = "history-item";
-
-      // TITRE
-      const title = document.createElement("p");
-      const strong = document.createElement("strong");
-
-      strong.textContent =
-        formatDate(period.startDate) + " → " +
-        formatDate(period.endDate);
-
-      title.appendChild(strong);
-
-      // PARAMETRES DE LA PERIODE
-      const daily = document.createElement("p");
-
-      daily.textContent =
-        "Heure journalière : " + period.dailyHours;
-
-      const monthly = document.createElement("p");
-
-      monthly.textContent =
-        "Heures mensuelles : " + (period.monthlyHours || "--:--");
-
-      const base = document.createElement("p");
-
-      base.textContent =
-        "Salaire de base : " + formatAr(period.baseSalary || 0);
-
-      // STATUT
-      const status = document.createElement("p");
-
-      status.className = "history-status";
-      status.textContent = "Période fermée";
-
-      // TOTAUX
-      const totals = calculatePeriodTotals(period);
-
-      const summaryTable = document.createElement("table");
-
-      summaryTable.className = "history-summary";
-
-      const summaryRows = [
-        ["TOTAL HEURE", minutesToTime(totals.totalWorked)],
-        ["TOTAL ÉCART", minutesToTime(totals.totalDifference)]
-      ];
-
-      // RECAPITULATIF DU SALAIRE
-      const salary = period.salary;
-
-      if (salary) {
-
-        summaryRows.push(
-          ["HEURES NORMALES", minutesToTime(salary.normalMinutes)],
-          ["HEURES SUPPLÉMENTAIRES", minutesToTime(salary.overtimeMinutes)],
-          ["TAUX HORAIRE", formatAr(salary.hourlyRate)],
-          ["MAJORATION", "+30 %"],
-          ["MONTANT HEURES SUPPLÉMENTAIRES", formatAr(salary.overtimeAmount)],
-          ["SALAIRE BRUT", formatAr(salary.grossSalary)]
-        );
-
-      }
-
-      summaryRows.forEach(data => {
-
-        const tr = document.createElement("tr");
-
-        const label = document.createElement("td");
-        label.textContent = data[0];
-
-        const value = document.createElement("td");
-        value.textContent = data[1];
-
-        tr.append(label, value);
-
-        summaryTable.appendChild(tr);
-
-      });
-
-      // TELECHARGER LE RAPPORT
-      const downloadButton = document.createElement("button");
-
-      downloadButton.className = "blue-button";
-      downloadButton.type = "button";
-      downloadButton.textContent = "Télécharger le rapport";
-
-      downloadButton.addEventListener("click", () => {
-
-        downloadPeriod(period);
-
-      });
-
-      // SUPPRIMER LA PERIODE
-      const deleteButton = document.createElement("button");
-
-      deleteButton.className = "delete-period-button";
-      deleteButton.type = "button";
-      deleteButton.textContent = "Supprimer";
-
-      deleteButton.addEventListener("click", () => {
-
-        deletePeriod(period.id);
-
-      });
-
-      item.append(
-        title,
-        daily,
-        monthly,
-        base,
-        status,
-        summaryTable,
-        downloadButton,
-        deleteButton
-      );
-
-      history.appendChild(item);
-
-    });
-
-  }
-
-
-  // ======================================
-  // SUPPRIMER UNE PERIODE
-  // ======================================
-
-  function deletePeriod(periodId) {
-
-    const confirmation = confirm(
-      "Voulez-vous vraiment supprimer cette période ?"
-    );
-
-    if (!confirmation) return;
-
-    periods = periods.filter(
-      period => String(period.id) !== String(periodId)
-    );
-
-    savePeriods();
-
-    renderHistory();
-
-    alert("Période supprimée avec succès !");
-
-  }
-
-
-  // ======================================
-  // SUPPRIMER TOUT L'HISTORIQUE
-  // ======================================
-
-  document.getElementById("deleteAllHistory")
-    .addEventListener("click", () => {
-
-      const closedPeriods = periods.filter(
-        period => period.closed
-      );
-
-      if (closedPeriods.length === 0) {
-
-        alert("Aucun historique à supprimer.");
-
-        return;
-
-      }
-
-      const confirmation = confirm(
-        "Voulez-vous vraiment supprimer tout l'historique ?"
-      );
-
-      if (!confirmation) return;
-
-      // Garder la période encore en cours
-      periods = periods.filter(
-        period => !period.closed
-      );
-
-      savePeriods();
-
-      renderHistory();
-
-      alert("Tout l'historique a été supprimé !");
-
-    });
-
-
-  // ======================================
-  // FIN DU SCRIPT ASA
-  // ======================================
-
-});
-
-
-
-
-
-
-
-
-
-    

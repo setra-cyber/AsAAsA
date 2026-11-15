@@ -75,8 +75,16 @@
         <span class="search-icon">⌕</span>
       </div>
 
-      <button class="icon-button" type="button" aria-label="Profil">♙</button>
-      <button class="icon-button menu-button" type="button" aria-label="Menu">☰</button>
+      <button type="button" class="profile-icon-button" id="headerProfileButton" aria-label="Profil">
+        <img id="headerProfilePhoto" src="" alt="Photo profil">
+      </button>
+      <button type="button" class="icon-button menu-button" id="menuButtonRegister" aria-label="Menu">☰</button>
+
+      <div class="menu-dropdown hidden" id="menuRegister">
+        <button type="button" data-menu-action="profile">Profil</button>
+        <button type="button" data-menu-action="salary">Calcul salaire brut</button>
+        <button type="button" data-menu-action="logout">Déconnexion</button>
+      </div>
     </header>
 
     <main class="register-content">
@@ -106,6 +114,8 @@
     </main>
   </section>
 
+
+
   <!-- PAGE 004 : PROFIL -->
   <section id="page004" class="page hidden">
     <header class="topbar profile-topbar">
@@ -118,15 +128,16 @@
                 stroke-width="18" stroke-linecap="round"/>
         </svg>
       </div>
-      <div class="menu-container">
-  <button class="icon-button menu-button" type="button"
-          aria-label="Menu" aria-expanded="false">☰</button>
+      <button type="button" class="profile-icon-button" id="headerProfileButtonPage4" aria-label="Profil">
+        <img id="headerProfilePhotoPage4" src="" alt="Photo profil">
+      </button>
+      <button type="button" class="icon-button menu-button" id="menuButtonProfile" aria-label="Menu">☰</button>
 
-  <div class="menu-dropdown hidden">
-    <button class="menu-profile" type="button">Profil</button>
-    <button class="menu-logout" type="button">Déconnexion</button>
-  </div>
-</div>
+      <div class="menu-dropdown hidden" id="menuProfile">
+        <button type="button" data-menu-action="profile">Profil</button>
+        <button type="button" data-menu-action="salary">Calcul salaire brut</button>
+        <button type="button" data-menu-action="logout">Déconnexion</button>
+      </div>
     </header>
 
     <main class="profile-content">
@@ -152,104 +163,253 @@
     </main>
   </section>
 
-  <!-- PAGE 005 : CALCUL DU TEMPS DE TRAVAIL -->
+  
+<!-- =========================================
+     PAGE 005 : GESTION DU TRAVAIL
+========================================= -->
 
-<!-- PAGE 005 : GESTION DU TRAVAIL ET SALAIRE -->
 <section id="page005" class="page hidden">
 
+  <!-- HEADER -->
   <header class="topbar">
+
     <div class="tiny-logo">
       <svg viewBox="0 0 200 160" aria-label="AsA">
         <path d="M15 115 L48 35 Q55 17 66 43 L105 120 Q116 145 128 115 L163 35"
           fill="none" stroke="currentColor" stroke-width="19"
           stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M55 82 H137" fill="none" stroke="currentColor"
+        <path d="M55 82 H137"
+          fill="none" stroke="currentColor"
           stroke-width="18" stroke-linecap="round"/>
       </svg>
     </div>
 
     <span class="page-title">Gestion du travail</span>
 
-    <div class="menu-container">
-      <button class="icon-button menu-button" type="button"
-        aria-label="Menu" aria-expanded="false">☰</button>
+    <button id="backProfile" class="icon-button" type="button">
+      ←
+    </button>
 
-      <div class="menu-dropdown hidden">
-        <button class="menu-profile" type="button">Profil</button>
-        <button class="menu-logout" type="button">Déconnexion</button>
-      </div>
-    </div>
-
-    <button id="backProfile" class="icon-button" type="button">←</button>
   </header>
+
 
   <main class="work-content">
 
-    <!-- NOUVELLE PERIODE -->
+    <!-- =====================================
+         NOUVELLE PERIODE
+    ====================================== -->
+
     <section id="newPeriodForm" class="period-card">
 
       <h2>Nouvelle période</h2>
 
-      <label for="periodStart">Début du mois</label>
-      <input type="date" id="periodStart" required>
+      <!-- SECTEUR -->
+      <label for="workSector">Secteur d'activité</label>
 
-      <label for="dailyHours">Heure journalière</label>
-      <input type="time" id="dailyHours" value="08:00" required>
+      <select id="workSector" required>
+        <option value="">Sélectionner un secteur</option>
+        <option value="Industrie">Industrie</option>
+        <option value="Bâtiment et travaux publics">Bâtiment et travaux publics</option>
+        <option value="Commerce">Commerce</option>
+        <option value="Transport">Transport</option>
+        <option value="Hôtellerie et restauration">Hôtellerie et restauration</option>
+        <option value="Banque et assurance">Banque et assurance</option>
+        <option value="Télécommunications">Télécommunications</option>
+        <option value="Informatique">Informatique</option>
+        <option value="Santé">Santé</option>
+        <option value="Éducation">Éducation</option>
+        <option value="Administration">Administration</option>
+        <option value="Services">Services</option>
+        <option value="Autre">Autre</option>
+      </select>
 
-      <label for="monthlyHours">Heures mensuelles</label>
-      <input
-        type="text"
-        id="monthlyHours"
-        placeholder="Exemple : 173:20"
-        value="173:20"
-        required
-      >
 
-      <label for="baseSalary">Salaire de base (Ar)</label>
+      <!-- CATEGORIE PROFESSIONNELLE -->
+      <label for="workCategory">
+        Catégorie professionnelle
+      </label>
+
+      <select id="workCategory" required>
+        <option value="">Sélectionner une catégorie</option>
+        <option value="Cadre">Cadre</option>
+        <option value="Agent de maîtrise">Agent de maîtrise</option>
+        <option value="Employé">Employé</option>
+        <option value="Ouvrier">Ouvrier</option>
+        <option value="Technicien">Technicien</option>
+        <option value="Autre">Autre</option>
+      </select>
+
+
+      <!-- SALAIRE DE BASE -->
+      <label for="baseSalary">
+        Salaire de base mensuel (Ar)
+      </label>
+
       <input
         type="number"
         id="baseSalary"
-        placeholder="Exemple : 500000"
         min="0"
         step="1"
+        placeholder="Exemple : 500000"
         required
       >
 
-      <button id="startPeriod" class="blue-button" type="button">
+
+      <!-- DUREE MENSUELLE -->
+      <label for="monthlyHours">
+        Durée mensuelle de référence
+      </label>
+
+      <input
+        type="text"
+        id="monthlyHours"
+        inputmode="numeric"
+        placeholder="Exemple : 173:20"
+        required
+      >
+
+
+      <!-- DUREE HEBDOMADAIRE -->
+      <label for="weeklyHours">
+        Durée hebdomadaire de référence
+      </label>
+
+      <input
+        type="text"
+        id="weeklyHours"
+        inputmode="numeric"
+        placeholder="Exemple : 40:00"
+        required
+      >
+
+      <label for="nightWorkType">Organisation du travail de nuit</label>
+      <select id="nightWorkType" required>
+        <option value="habituel">Travail de nuit habituel</option>
+        <option value="occasionnel">Travail de nuit occasionnel</option>
+      </select>
+
+      <label for="majorationMode">Mode de majoration</label>
+      <select id="majorationMode" required>
+        <option value="automatic">Automatique</option>
+        <option value="manual">Manuel</option>
+      </select>
+
+      <div class="rate-settings">
+        <label for="overtimeRateFirst">
+          Taux heures supplémentaires (8 premières heures) %
+        </label>
+        <input type="number" id="overtimeRateFirst"
+              value="30" min="0" max="300">
+
+        <label for="overtimeRateNext">
+          Taux heures supplémentaires suivantes %
+        </label>
+        <input type="number" id="overtimeRateNext"
+              value="50" min="0" max="300">
+
+        <label for="nightRate">Taux majoration de nuit %</label>
+        <input type="number" id="nightRate"
+              value="30" min="0" max="300">
+      </div>
+
+
+      <!-- HEURE JOURNALIERE -->
+      <label for="dailyHours">
+        Heure journalière
+      </label>
+
+      <input
+        type="time"
+        id="dailyHours"
+        value="08:00"
+        required
+      >
+
+
+      <!-- DEBUT DU MOIS -->
+      <label for="periodStart">
+        Début du mois
+      </label>
+
+      <input
+        type="date"
+        id="periodStart"
+        required
+      >
+
+
+      <button
+        id="startPeriod"
+        class="blue-button"
+        type="button"
+      >
         Commencer la période
       </button>
 
     </section>
 
 
-    <!-- PERIODE EN COURS -->
+
+    <!-- =====================================
+         PERIODE EN COURS
+    ====================================== -->
+
     <section id="activePeriod" class="period-card hidden">
 
       <h2>Ma période de travail</h2>
 
+
+      <!-- DETAILS -->
       <div class="period-details">
 
-        <p>Début :
+        <p>
+          Secteur :
+          <strong id="sectorDisplay"></strong>
+        </p>
+
+        <p>
+          Catégorie :
+          <strong id="categoryDisplay"></strong>
+        </p>
+
+        <p>
+          Salaire de base :
+          <strong id="baseSalaryDisplay"></strong>
+        </p>
+
+        <p>
+          Début :
           <strong id="periodStartDisplay"></strong>
         </p>
 
-        <p>Heure journalière :
+        <p>
+          Heure journalière :
           <strong id="dailyHoursDisplay"></strong>
         </p>
 
-        <p>Heures mensuelles :
+        <p>
+          Référence mensuelle :
           <strong id="monthlyHoursDisplay"></strong>
         </p>
 
-        <p>Salaire de base :
-          <strong id="baseSalaryDisplay"></strong>
+        <p>
+          Référence hebdomadaire :
+          <strong id="weeklyHoursDisplay"></strong>
         </p>
 
       </div>
 
+
+
+      <!-- TABLEAU JOURNALIER -->
+      <h3 class="work-section-title">
+        Tableau des heures de travail
+      </h3>
+
       <div class="table-wrapper">
 
         <table id="workTable">
+
           <thead>
             <tr>
               <th>Date</th>
@@ -257,100 +417,133 @@
               <th>H. fin</th>
               <th>H/J</th>
               <th>Écart</th>
+              <th>H. nuit</th>
             </tr>
           </thead>
 
           <tbody id="workTableBody"></tbody>
+
         </table>
 
       </div>
 
-      <button id="addWorkLine" class="blue-button" type="button">
+
+      <button
+        id="addWorkLine"
+        class="blue-button"
+        type="button"
+      >
         + Ajouter une ligne
       </button>
 
-      <div class="period-total">
 
-        <p>Total des heures :
-          <strong id="totalHours">00:00</strong>
-        </p>
 
-        <p>Total des écarts :
-          <strong id="totalDifference">00:00</strong>
-        </p>
+      <!-- =====================================
+           RECAPITULATION
+      ====================================== -->
 
-      </div>
+      <section class="summary-card">
 
-      <button id="downloadReport" class="blue-button" type="button">
-        Télécharger le rapport
+        <h3>Tableau de récapitulation</h3>
+
+        <table class="summary-table">
+
+          <tbody>
+
+            <tr>
+              <td>Total jours travaillés</td>
+              <td id="summaryDays">0</td>
+            </tr>
+
+            <tr>
+              <td>Total heures de travail</td>
+              <td id="summaryWorkHours">00:00</td>
+            </tr>
+
+            <tr>
+              <td>Total heures supplémentaires</td>
+              <td id="summaryOvertime">00:00</td>
+            </tr>
+
+            <tr>
+              <td>Total heures de nuit</td>
+              <td id="summaryNightHours">00:00</td>
+            </tr>
+
+            <tr>
+              <td>Total heures normales</td>
+              <td id="summaryNormalHours">00:00</td>
+            </tr>
+
+            <tr>
+              <td>Salaire de base mensuel</td>
+              <td id="summaryBaseSalary">0 Ar</td>
+            </tr>
+
+            <tr>
+              <td>Rémunération des heures supplémentaires</td>
+              <td id="summaryOvertimeSalary">0 Ar</td>
+            </tr>
+
+            <tr>
+              <td>Majoration travail de nuit</td>
+              <td id="summaryNightBonus">0 Ar</td>
+            </tr>
+
+            <tr class="summary-total">
+              <td>SALAIRE BRUT</td>
+              <td id="summaryGrossSalary">0 Ar</td>
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </section>
+
+
+
+      <!-- TELECHARGEMENT -->
+      <button
+        id="downloadReport"
+        class="blue-button"
+        type="button"
+      >
+        Télécharger le rapport PDF
       </button>
 
-      <button id="closePeriod" class="close-button" type="button">
+
+      <!-- FERMETURE -->
+      <button
+        id="closePeriod"
+        class="close-button"
+        type="button"
+      >
         Fermeture du compte
       </button>
 
     </section>
 
 
-    <!-- RECAPITULATIF AVANT FERMETURE -->
-    <section id="salarySummary" class="period-card hidden">
 
-      <h2>Récapitulatif du salaire</h2>
+    <!-- =====================================
+         HISTORIQUE
+    ====================================== -->
 
-      <div class="salary-summary-content">
-
-        <p>Salaire de base :
-          <strong id="summaryBaseSalary">0 Ar</strong>
-        </p>
-
-        <p>Total heures normales :
-          <strong id="summaryNormalHours">00:00</strong>
-        </p>
-
-        <p>Total heures supplémentaires :
-          <strong id="summaryOvertimeHours">00:00</strong>
-        </p>
-
-        <p>Taux horaire :
-          <strong id="summaryHourlyRate">0 Ar</strong>
-        </p>
-
-        <p>Majoration des heures supplémentaires :
-          <strong>30%</strong>
-        </p>
-
-        <p>Montant heures supplémentaires :
-          <strong id="summaryOvertimeAmount">0 Ar</strong>
-        </p>
-
-        <div class="salary-result">
-          <p>SALAIRE BRUT</p>
-          <strong id="summaryGrossSalary">0 Ar</strong>
-        </div>
-
-      </div>
-
-      <button id="confirmClosePeriod" class="close-button" type="button">
-        Confirmer la fermeture
-      </button>
-
-      <button id="cancelClosePeriod" class="blue-button" type="button">
-        Retour
-      </button>
-
-    </section>
-
-
-    <!-- HISTORIQUE -->
     <section class="period-card history-card">
 
       <h2>Historique des périodes</h2>
 
       <div class="history-actions">
-        <button id="deleteAllHistory" class="delete-all-button"
-          type="button">
+
+        <button
+          id="deleteAllHistory"
+          class="delete-all-button"
+          type="button"
+        >
           Supprimer tout l'historique
         </button>
+
       </div>
 
       <div id="periodHistory"></div>
@@ -362,10 +555,12 @@
 </section>
 
 
-   
 
 
+<button type="button" id="resetTestAccount" class="reset-test-button">
+  Réinitialiser le compte de test
+</button>
 
-  <script type="module" src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>

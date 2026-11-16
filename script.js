@@ -1,5 +1,24 @@
 
 document.addEventListener("DOMContentLoaded", () => {
+  // =====================================
+// FIREBASE
+// =====================================
+
+if (typeof firebase === "undefined") {
+  console.error("Firebase SDK tsy voaloatra.");
+  alert("Erreur : Firebase tsy voaloatra. Vérifiez index.html.");
+  return;
+}
+
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+
+
 
   // =====================================
   // 1. ELEMENTS HTML
@@ -141,6 +160,69 @@ document.addEventListener("click", event => {
   }
 
   // =====================================
+// FIRESTORE : PROFIL
+// =====================================
+
+async function saveCloudProfile(profile) {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const cloudProfile = {
+    name: profile.fullName || "",
+    birth: profile.birthDate || "",
+    email: user.email || "",
+    photo: profile.photo || "",
+    updatedAt: new Date().toISOString()
+  };
+
+  await db.collection("users")
+    .doc(user.uid)
+    .set(cloudProfile, { merge: true });
+}
+
+async function loadCloudProfile(user) {
+  const doc = await db.collection("users")
+    .doc(user.uid)
+    .get();
+
+  let profile;
+
+  if (doc.exists) {
+    const data = doc.data();
+
+    profile = {
+      fullName: data.name || "",
+      contact: data.email || user.email || "",
+      birthDate: data.birth || "",
+      photo: data.photo || ""
+    };
+  } else {
+    const localProfile = getProfile();
+
+    profile = localProfile
+      ? {
+          fullName: localProfile.fullName || "",
+          contact: user.email || "",
+          birthDate: localProfile.birthDate || "",
+          photo: localProfile.photo || ""
+        }
+      : {
+          fullName: user.displayName || "",
+          contact: user.email || "",
+          birthDate: "",
+          photo: ""
+        };
+
+    await saveCloudProfile(profile);
+  }
+
+  // Tsy tehirizina ao LocalStorage intsony ny mot de passe.
+  saveProfile(profile);
+
+  return profile;
+}
+
+  // =====================================
   // 3. NAVIGATION
   // =====================================
 
@@ -215,80 +297,145 @@ document.addEventListener("click", event => {
   // =====================================
   // 6. INSCRIPTION
   // =====================================
+  // =====================================
+// 6. INSCRIPTION FIREBASE
+// =====================================
 
-  registerForm.addEventListener("submit", event => {
-    event.preventDefault();
+registerForm.addEventListener("submit", async event => {
+  event.preventDefault();
 
-    const name = fullName.value.trim();
-    const contact = registerContact.value.trim();
-    const date = birthDate.value;
-    const password = registerPassword.value;
-    const confirmation = confirmPassword.value;
+  const name = fullName.value.trim();
+  const contact = registerContact.value.trim().toLowerCase();
+  const date = birthDate.value;
+  const password = registerPassword.value;
+  const confirmation = confirmPassword.value;
 
-    if (!name || !contact || !date || !password || !confirmation) {
-      showMessage(registerMessage, "Veuillez remplir tous les champs.", true);
-      return;
-    }
+  if (!name || !contact || !date || !password || !confirmation) {
+    showMessage(registerMessage, "Veuillez remplir tous les champs.", true);
+    return;
+  }
 
-    if (password.length < 6) {
-      showMessage(registerMessage, "Minimum 6 caractères pour le mot de passe.", true);
-      return;
-    }
+  if (!contact.includes("@")) {
+    showMessage(
+      registerMessage,
+      "Veuillez utiliser une adresse e-mail pour cette inscription.",
+      true
+    );
+    return;
+  }
 
-    if (password !== confirmation) {
-      showMessage(registerMessage, "Les mots de passe ne correspondent pas.", true);
-      return;
-    }
+  if (password.length < 6) {
+    showMessage(registerMessage, "Minimum 6 caractères pour le mot de passe.", true);
+    return;
+  }
 
-    if (getProfile()) {
-      showMessage(registerMessage, "Un compte existe déjà sur cet appareil.", true);
-      return;
-    }
+  if (password !== confirmation) {
+    showMessage(registerMessage, "Les mots de passe ne correspondent pas.", true);
+    return;
+  }
+
+  if (auth.currentUser || getProfile()) {
+    showMessage(registerMessage, "Un compte existe déjà sur cet appareil.", true);
+    return;
+  }
+
+  try {
+    const credential = await auth.createUserWithEmailAndPassword(
+      contact,
+      password
+    );
 
     const profile = {
       fullName: name,
-      contact: contact,
+      contact: credential.user.email,
       birthDate: date,
-      password: password,
       photo: ""
     };
 
     saveProfile(profile);
+
+    await saveCloudProfile(profile);
+
     saveSession(true);
 
     registerForm.reset();
 
     displayProfile();
-  });
+
+  } catch (error) {
+    console.error("Erreur inscription Firebase :", error);
+
+    const messages = {
+      "auth/email-already-in-use": "Cette adresse e-mail est déjà utilisée.",
+      "auth/invalid-email": "Adresse e-mail invalide.",
+      "auth/weak-password": "Mot de passe trop faible.",
+      "auth/network-request-failed": "Problème de connexion Internet."
+    };
+
+    showMessage(
+      registerMessage,
+      messages[error.code] || "Erreur lors de l'inscription.",
+      true
+    );
+  }
+});
 
   // =====================================
-  // 7. CONNEXION
-  // =====================================
+// 7. CONNEXION FIREBASE
+// =====================================
 
-  loginForm.addEventListener("submit", event => {
-    event.preventDefault();
+loginForm.addEventListener("submit", async event => {
+  event.preventDefault();
 
-    const contact = loginContact.value.trim();
-    const password = loginPassword.value;
+  const contact = loginContact.value.trim().toLowerCase();
+  const password = loginPassword.value;
 
-    const profile = getProfile();
+  if (!contact || !password) {
+    showMessage(loginMessage, "Veuillez remplir tous les champs.", true);
+    return;
+  }
 
-    if (!profile) {
-      showMessage(loginMessage, "Aucun compte trouvé. Inscrivez-vous.", true);
-      return;
-    }
+  if (!contact.includes("@")) {
+    showMessage(
+      loginMessage,
+      "Veuillez utiliser votre adresse e-mail pour vous connecter.",
+      true
+    );
+    return;
+  }
 
-    if (
-      contact === profile.contact &&
-      password === profile.password
-    ) {
-      saveSession(true);
-      loginForm.reset();
-      displayProfile();
-    } else {
-      showMessage(loginMessage, "Identifiants incorrects.", true);
-    }
-  });
+  try {
+    const credential = await auth.signInWithEmailAndPassword(
+      contact,
+      password
+    );
+
+    await loadCloudProfile(credential.user);
+
+    saveSession(true);
+
+    loginForm.reset();
+
+    displayProfile();
+
+  } catch (error) {
+    console.error("Erreur connexion Firebase :", error);
+
+    const messages = {
+      "auth/user-not-found": "Aucun compte trouvé.",
+      "auth/wrong-password": "Mot de passe incorrect.",
+      "auth/invalid-credential": "Adresse e-mail ou mot de passe incorrect.",
+      "auth/invalid-email": "Adresse e-mail invalide.",
+      "auth/network-request-failed": "Problème de connexion Internet."
+    };
+
+    showMessage(
+      loginMessage,
+      messages[error.code] || "Connexion impossible.",
+      true
+    );
+  }
+});
 
   
  // =====================================

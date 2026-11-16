@@ -537,14 +537,29 @@ function compressImage(file) {
   // 9. BOUTON ENTRER
   // =====================================
 
-  enterApp?.addEventListener("click", () => {
-    if (!getSession()) {
-      showPage(page002);
-      return;
-    }
+  
+enterApp?.addEventListener("click", async () => {
+  if (!getSession()) {
+    showPage(page002);
+    return;
+  }
 
-    showWorkPage();
-  });
+  try {
+    if (auth.currentUser) {
+      await syncPeriodsWithCloud();
+    }
+  } catch (error) {
+    console.error("Erreur synchronisation :", error);
+
+    alert(
+      "Synchronisation cloud impossible pour le moment. " +
+      "Vos données locales sont conservées."
+    );
+  }
+
+  showWorkPage();
+});
+
 
 
 
@@ -638,6 +653,7 @@ let currentPeriod = null;
 // OUTILS
 // --------------------------------------------
 
+
 function readPeriods() {
   try {
     const data = JSON.parse(localStorage.getItem(PERIODS_KEY));
@@ -651,8 +667,24 @@ function savePeriods(periods) {
   localStorage.setItem(PERIODS_KEY, JSON.stringify(periods));
 }
 
+// Mitahiry période ao amin'ny Firestore
+async function savePeriodToCloud(period) {
+  const user = auth.currentUser;
+
+  if (!user || !period || !period.id) return;
+
+  await db.collection("users")
+    .doc(user.uid)
+    .collection("periods")
+    .doc(period.id)
+    .set(period, { merge: true });
+}
+
+// Mitahiry période ao amin'ny LocalStorage sy Firestore
 function saveCurrentPeriod() {
   if (!currentPeriod) return;
+
+  currentPeriod.updatedAt = new Date().toISOString();
 
   const periods = readPeriods();
   const index = periods.findIndex(p => p.id === currentPeriod.id);
@@ -663,8 +695,94 @@ function saveCurrentPeriod() {
     periods[index] = currentPeriod;
   }
 
+  // Tehirizina aloha eto an-toerana
   savePeriods(periods);
+
+  // Alefa any amin'ny Firestore raha misy connexion
+  if (auth.currentUser) {
+    savePeriodToCloud(currentPeriod).catch(error => {
+      console.error("Erreur sauvegarde cloud :", error);
+    });
+  }
 }
+
+// Synchronisation LocalStorage <-> Firestore
+async function syncPeriodsWithCloud() {
+  const user = auth.currentUser;
+
+  if (!user) {
+    console.warn("Aucun utilisateur Firebase connecté.");
+    return;
+  }
+
+  const periodsRef = db.collection("users")
+    .doc(user.uid)
+    .collection("periods");
+
+  // Maka ny données ao amin'ny cloud
+  const snapshot = await periodsRef.get();
+
+  const localPeriods = readPeriods();
+  const cloudPeriods = snapshot.docs.map(doc => ({
+    ...doc.data(),
+    id: doc.id
+  }));
+
+  const merged = new Map();
+  const uploadToCloud = [];
+
+  // Ampidirina aloha ny périodes ao amin'ny cloud
+  cloudPeriods.forEach(period => {
+    merged.set(period.id, period);
+  });
+
+  // Ampitahaina amin'ny périodes ao amin'ny navigateur
+  localPeriods.forEach(localPeriod => {
+    const cloudPeriod = merged.get(localPeriod.id);
+
+    // Raha tsy mbola misy ao amin'ny cloud
+    if (!cloudPeriod) {
+      merged.set(localPeriod.id, localPeriod);
+      uploadToCloud.push(localPeriod);
+      return;
+    }
+
+    const localTime = Date.parse(
+      localPeriod.updatedAt || localPeriod.createdAt || 0
+    );
+
+    const cloudTime = Date.parse(
+      cloudPeriod.updatedAt || cloudPeriod.createdAt || 0
+    );
+
+    // Raha vaovao kokoa ny version locale
+    if (localTime > cloudTime) {
+      merged.set(localPeriod.id, localPeriod);
+      uploadToCloud.push(localPeriod);
+    }
+    // Raha tsy izany dia tazonina ny version cloud
+  });
+
+  const finalPeriods = Array.from(merged.values());
+
+  // Averina tehirizina ao amin'ny LocalStorage
+  savePeriods(finalPeriods);
+
+  // Alefa any amin'ny cloud ireo périodes tsy hita
+  // na vaovao kokoa ao amin'ny navigateur
+  for (const period of uploadToCloud) {
+    await savePeriodToCloud(period);
+  }
+
+  console.log(
+    "Synchronisation terminée :",
+    finalPeriods.length,
+    "périodes."
+  );
+
+  return finalPeriods;
+}
+
 
 function makeId() {
   return Date.now().toString(36) +
